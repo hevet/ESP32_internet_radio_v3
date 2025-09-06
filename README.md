@@ -12,8 +12,8 @@
   - Regulacja głośności
   - Pauza / wznowienie odtwarzania
   - Wyciszenie dźwięku
-- Obsługa do **18 banków stacji radiowych**, każdy bank zawiera do 99 stacji.
-- Automatyczne pobieranie list stacji radiowych z plików JSON z GitHub.
+- Obsługa **18 banków stacji radiowych**, każdy bank zawiera do 99 stacji.
+- Pobieranie list stacji radiowych z plików z GitHub.
 - Obsługa odtwarzania lokalnych plików audio z karty SD.
 - Wyświetlanie informacji o strumieniu audio:
   - Bitrate w b/s
@@ -49,8 +49,8 @@
   - Volume adjustment
   - Pause / resume playback
   - Mute audio
-- Supports up to **18 radio banks**, each bank with up to 99 stations.
-- Automatic fetching of radio station lists from JSON files on GitHub.
+- Supports up **18 radio banks**, each bank with up to 99 stations.
+- Fetching of radio station lists from files on GitHub.
 - Local audio file playback from SD card.
 - Display of audio stream information:
   - Bitrate in b/s
