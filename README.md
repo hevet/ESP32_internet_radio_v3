@@ -1,8 +1,8 @@
-# Internet Radio v3 / Radio Internetowe v3
+# Internet Radio v3 - development version / Radio Internetowe v3 - wersja rozwojowa
 
 ## Polski
 
-**Internet Radio v3** to projekt odtwarzacza radia internetowego dla ESP32 z wyświetlaczem TFT ILI9488 i modułem audio DAC (PCM5102A). Projekt umożliwia odtwarzanie strumieni audio online oraz plików lokalnych z karty SD. Wersja v3 wprowadza liczne usprawnienia w wyświetlaniu informacji i obsłudze pilotem IR.
+**Internet Radio v3** to projekt odtwarzacza plików audio i radia internetowego dla ESP32 S3 z wyświetlaczem TFT ILI9488 i modułem audio DAC (PCM5102A). Projekt umożliwia odtwarzanie strumieni audio online oraz plików lokalnych z karty SD. Wersja v3 wprowadza liczne usprawnienia w wyświetlaniu informacji i obsłudze pilotem IR.
 
 ### Funkcjonalności
 
@@ -39,7 +39,7 @@
 
 ## English
 
-**Internet Radio v3** is an Internet radio player project for ESP32 with a TFT ILI9488 display and PCM5102A DAC module. The project supports online audio streams and local audio files from an SD card. Version v3 introduces improved display handling and IR remote control support.
+**Internet Radio v3** is an Internet radio and audio file player project for ESP32 S3 with a TFT ILI9488 display and PCM5102A DAC module. The project supports online audio streams and local audio files from an SD card. Version v3 introduces improved display handling and IR remote control support.
 
 ### Features
 
