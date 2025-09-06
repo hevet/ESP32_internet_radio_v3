@@ -807,19 +807,19 @@ void updateWeather()
   Serial.print("Wilgotność: ");
   Serial.print(humidity);
   Serial.println(" %");
-  humidityStr = "Wilgotność: " + String(humidity) + " %";
+  humidityStr = "Wilgotnosc: " + String(humidity) + " %";
   
   Serial.print("Ciśnienie: ");
   Serial.print(pressure);
   Serial.println(" hPa");
-  pressureStr = "Ciśnienie: " + String(pressure, 2) + " hPa";
+  pressureStr = "Cisnienie: " + String(pressure, 2) + " hPa";
   
   Serial.print("Opis pogody: ");
   Serial.println(weatherDescription);
   Serial.print("Ikona: ");
   Serial.println(icon);
   
-  Serial.print("Prędkość wiatru: ");
+  Serial.print("Predkosc wiatru: ");
   Serial.print(windSpeed, 2);
   Serial.println(" m/s");
   windStr = "Wiatr: " + String(windSpeed) + " m/s";
@@ -830,50 +830,56 @@ void updateWeather()
   windGustStr = "W porywach: " + String(windGust) + " m/s";
 }
 
-// Funkcja do przełączania między różnymi danymi pogodowymi, które są wyświetlane na ekranie
+
+
+// Funkcja do przełączania między różnymi danymi pogodowymi na ekranie TFT
 void switchWeatherData()
 {
-  //u8g2.drawStr(0, 62, "                                           "); // Wypełnienie spacjami jako czyszczenie linii
-  //u8g2.setFont(spleen6x12PL);
-  if ((timeDisplay == true) && (weatherServerConnection == true))
+  // Czyszczenie obszaru wyświetlania danych pogodowych (nad audioInfoDisplay)
+  tft_fillRect(0, 200, TFT_WIDTH, 30, COLOR_BLACK); // Wypełnienie prostokąta nad wierszem z bitrate/samplerate
+
+  if (weatherServerConnection)
   {
+    String line1, line2;
+
     if (cycle == 0)
     {
-      //u8g2.drawStr(0, 62, tempStr.c_str());
-      //u8g2.drawStr(130, 62, feels_likeStr.c_str()); 
-    } 
+      // Wyświetlamy temperaturę i odczuwalną temperaturę
+      line1 = tempStr;           // np. "Temperatura: 21.5 C"
+      line2 = feels_likeStr;     // np. "Odczuwalna: 22.0 C"
+    }
     else if (cycle == 1)
     {
-      //u8g2.drawStr(0, 62, windStr.c_str());
-      //u8g2.drawStr(110, 62, windGustStr.c_str());
-    } 
+      // Wyświetlamy wiatr i porywy
+      line1 = windStr;           // np. "Wiatr: 3.5 m/s"
+      line2 = windGustStr;       // np. "W porywach: 5.2 m/s"
+    }
     else if (cycle == 2)
     {
-      //processText(humidityStr);  // Podstawienie polskich znaków diakrytycznych
-      //processText(pressureStr);  // Podstawienie polskich znaków diakrytycznych
-      //u8g2.drawStr(0, 62, humidityStr.c_str());
-      //u8g2.drawStr(115, 62, pressureStr.c_str());
+      // Wyświetlamy wilgotność i ciśnienie
+      line1 = humidityStr;       // np. "Wilgotność: 60 %"
+      line2 = pressureStr;       // np. "Ciśnienie: 1015 hPa"
     }
 
-    //u8g2.sendBuffer();
+    // Rysowanie danych pogodowych nad wierszem audioInfo
+    drawStringFont(&FreeSans12pt7b, 5, 220, line1.c_str(), COLOR_CYAN);
+    drawStringFont(&FreeSans12pt7b, 240, 220, line2.c_str(), COLOR_CYAN);
   }
-  if ((timeDisplay == true) && (weatherServerConnection == false))
+  else
   {
-    //u8g2.drawStr(0, 62, "                                           ");
-    String text = "--- Brak połączenia z serwerem pogody ---";
-    //processText(text);  // Podstawienie polskich znaków diakrytycznych
-    //u8g2.setCursor(0, 62);
-    //u8g2.print(text);
-    //u8g2.sendBuffer();
+    // Brak połączenia z serwerem
+    String errorText = "--- Brak polaczenia z serwerem pogody ---";
+    drawStringFont(&FreeSans12pt7b, 5, 220, errorText.c_str(), COLOR_RED);
   }
-  
-  // Zmiana cyklu: przechodzimy do następnego zestawu danych
+
+  // Zmiana cyklu
   cycle++;
   if (cycle > 2)
   {
-    cycle = 0;  // Wracamy do cyklu 0 po trzecim cyklu
+    cycle = 0;
   }
 }
+
 
 // Funkcja do ustawienia głośności na żądaną wartość
 void volumeSet()
@@ -901,7 +907,7 @@ void volumeSet()
 
   // Połączenie napisu "VOL " z wartością głośności
   volumeDisplay = "VOL " + String(volumeValue);
-  drawStringFont(&FreeMonoBold12pt7b, 3, 285, volumeDisplay.c_str(), COLOR_WHITE);
+  drawStringFont(&FreeMonoBold12pt7b, 5, 285, volumeDisplay.c_str(), COLOR_WHITE);
 
   if (currentOption == INTERNET_RADIO)
   {
@@ -2170,14 +2176,14 @@ void displayRadio()
   }
 
   // --- Nazwa stacji ---
-  drawStringFont(&FreeSansBold18pt7b, 0, 35, mainName.c_str(), COLOR_CYAN);
+  drawStringFont(&FreeSansBold18pt7b, 5, 35, mainName.c_str(), COLOR_TURQUOISE);
 
   // --- Informacje o stacji ---
-  drawWrappedStringFont(&FreeSans12pt7b, 0, 70, stationInfo.c_str(), COLOR_GREEN, 480, 30);
+  drawWrappedStringFont(&FreeSans12pt7b, 5, 70, stationInfo.c_str(), COLOR_GREEN, 480, 30);
 
   // --- Numer banku i numer stacji ---
   if (extraInfo.length() > 0) {
-      drawStringFont(&FreeMonoBold12pt7b, 0, 310, extraInfo.c_str(), COLOR_ORANGE);
+      drawStringFont(&FreeMonoBold12pt7b, 5, 310, extraInfo.c_str(), COLOR_ORANGE);
   }
 
   // Tworzymy napis z bitrate, sample rate i bits per sample
@@ -2194,14 +2200,14 @@ void displayRadio()
   }
 
   // Wyświetlenie parametrów audio
-  drawStringFont(&FreeMonoBold12pt7b, 3, 260, audioInfoDisplay.c_str(), COLOR_YELLOW);
+  drawStringFont(&FreeMonoBold12pt7b, 5, 260, audioInfoDisplay.c_str(), COLOR_YELLOW);
 
   // Połączenie napisu "VOL " z wartością głośności
   volumeDisplay = "VOL " + String(volumeValue);
-  drawStringFont(&FreeMonoBold12pt7b, 3, 285, volumeDisplay.c_str(), COLOR_WHITE);
+  drawStringFont(&FreeMonoBold12pt7b, 5, 285, volumeDisplay.c_str(), COLOR_WHITE);
 
   // Wyświetlenie typu pliku na ekranie
-  drawStringFont(&FreeMonoBold12pt7b, 260, 310, fileType.c_str(), COLOR_CYAN );
+  drawStringFont(&FreeMonoBold12pt7b, 270, 310, fileType.c_str(), COLOR_CYAN );
 
   Serial.print("File type: ");
   Serial.println(fileType);
@@ -2268,13 +2274,13 @@ void setup()
 
     configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", ntpServer); // Konfiguracja strefy czasowej dla Polski z czasem letnim
     timer1.attach(1, updateTimer);   // Ustaw timer, aby wywoływał funkcję updateTimer co sekundę
-    //timer2.attach(300, getWeatherData);   // Ustaw timer, aby wywoływał funkcję getWeatherData co 5 minut
-    //timer3.attach(10, switchWeatherData);   // Ustaw timer, aby wywoływał funkcję switchWeatherData co 10 sekund
+    timer2.attach(300, getWeatherData);   // Ustaw timer, aby wywoływał funkcję getWeatherData co 5 minut
+    timer3.attach(10, switchWeatherData);   // Ustaw timer, aby wywoływał funkcję switchWeatherData co 10 sekund
     //timer4.attach(20, showCalendar);
     //timer5.attach(60, showRadio);
     fetchStationsFromServer();
     changeStation();
-    //getWeatherData();
+    getWeatherData();
     //fetchAndDisplayCalendar();
   }
   else
