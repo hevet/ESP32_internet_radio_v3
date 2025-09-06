@@ -40,10 +40,7 @@
 #define I2S_BCLK      16          // Podłączenie po pinu BCK na module DAC z PCM5102A
 #define I2S_LRC       18          // Podłączenie do pinu LCK na module DAC z PCM5102A
 
-SPIClass spi = SPIClass(FSPI); // Uzycie dla ekranu
 
-// Konfiguracja dodatkowego SPI z wybranymi pinami dla czytnika kart SD
-SPIClass customSPI = SPIClass(HSPI);  // Użycie HSPI dla karty SD
 
 // Makra upraszczające sterowanie liniami TFT
 #define CS_ACTIVE   digitalWrite(TFT_CS, LOW)   // Aktywacja wyświetlacza (CS = LOW)
@@ -209,7 +206,13 @@ Ticker timer2;                            // Timer do getWeatherData co 60s
 Ticker timer3;                            // Timer do przełączania wyświetlania danych pogodoych w ostatniej linii co 10s
 Ticker timer4;                            // Timer do włączania na ekran kartki z kalendarza na 20 sekund
 Ticker timer5; 
+
 WiFiClient client;                        // Obiekt do obsługi połączenia WiFi dla klienta HTTP
+
+SPIClass spi = SPIClass(HSPI); // Użycie VSPI dla ekranu
+
+// Konfiguracja dodatkowego SPI z wybranymi pinami dla czytnika kart SD
+SPIClass customSPI = SPIClass(FSPI);  // Użycie HSPI dla karty SD
 
 char stations[MAX_STATIONS][STATION_NAME_LENGTH];   // Tablica przechowująca nazwy stacji wraz z bankiem i numerem stacji
 
@@ -2230,6 +2233,10 @@ void setup()
 
   spi.begin(TFT_SCLK,TFT_MISO,TFT_MOSI,-1);
   spi.beginTransaction(SPISettings(40000000,MSBFIRST,SPI_MODE0));
+
+  // Inicjalizacja SPI z nowymi pinami dla czytnika kart SD
+  customSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+
   tft_init();
   Serial.println("TFT init done");
 
@@ -2251,9 +2258,6 @@ void setup()
   {
     Serial.println("Błąd pamięci PSRAM");
   }
-
-    // Inicjalizacja SPI z nowymi pinami dla czytnika kart SD
-  customSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);  // Inicjalizacja HSPI dla SD
 
   // Inicjalizacja karty SD wraz z pierwszyn utworzeniem wymaganych plików w głównym katalogu karty, jesli pliki już istnieją funkcja sprawdza ich obecność
   SDinit();
