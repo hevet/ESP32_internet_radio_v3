@@ -87,6 +87,7 @@
 #define COLOR_LIME       128, 255, 0
 #define COLOR_TURQUOISE  0, 128, 255
 #define COLOR_WHITE      255, 255, 255
+#define COLOR_GOLD       231, 211, 90
 
 #define COLOR_BLACK      0, 0, 0
 
@@ -865,14 +866,14 @@ void switchWeatherData()
     }
 
     // Rysowanie danych pogodowych nad wierszem audioInfo
-    drawStringFont(&FreeSans12pt7b, 5, 220, line1.c_str(), COLOR_CYAN);
+    drawStringFont(&FreeSans12pt7b, 0, 220, line1.c_str(), COLOR_CYAN);
     drawStringFont(&FreeSans12pt7b, 240, 220, line2.c_str(), COLOR_CYAN);
   }
   else
   {
     // Brak połączenia z serwerem
     String errorText = "--- Brak polaczenia z serwerem pogody ---";
-    drawStringFont(&FreeSans12pt7b, 5, 220, errorText.c_str(), COLOR_RED);
+    drawStringFont(&FreeSans12pt7b, 0, 220, errorText.c_str(), COLOR_RED);
   }
 
   // Zmiana cyklu
@@ -910,7 +911,7 @@ void volumeSet()
 
   // Połączenie napisu "VOL " z wartością głośności
   volumeDisplay = "VOL " + String(volumeValue);
-  drawStringFont(&FreeMonoBold12pt7b, 5, 285, volumeDisplay.c_str(), COLOR_WHITE);
+  drawStringFont(&FreeMonoBold12pt7b, 5, 280, volumeDisplay.c_str(), COLOR_WHITE);
 
   if (currentOption == INTERNET_RADIO)
   {
@@ -1150,7 +1151,7 @@ void updateTimer()
 
   // Przygotuj string czasu
   char timeString[9];
-  snprintf(timeString, sizeof(timeString), "%02d:%02d:%02d",
+  snprintf(timeString, sizeof(timeString), "%2d:%02d:%02d",
            timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 
 
@@ -2179,14 +2180,14 @@ void displayRadio()
   }
 
   // --- Nazwa stacji ---
-  drawStringFont(&FreeSansBold18pt7b, 5, 35, mainName.c_str(), COLOR_TURQUOISE);
+  drawStringFont(&FreeSansBold18pt7b, 0, 35, mainName.c_str(), COLOR_TURQUOISE);
 
   // --- Informacje o stacji ---
-  drawWrappedStringFont(&FreeSans12pt7b, 5, 70, stationInfo.c_str(), COLOR_GREEN, 480, 30);
+  drawWrappedStringFont(&FreeSans12pt7b, 0, 70, stationInfo.c_str(), COLOR_GREEN, 480, 30);
 
   // --- Numer banku i numer stacji ---
   if (extraInfo.length() > 0) {
-      drawStringFont(&FreeMonoBold12pt7b, 5, 310, extraInfo.c_str(), COLOR_ORANGE);
+      drawStringFont(&FreeMonoBold12pt7b, 0, 310, extraInfo.c_str(), COLOR_ORANGE);
   }
 
   // Tworzymy napis z bitrate, sample rate i bits per sample
@@ -2196,20 +2197,21 @@ void displayRadio()
       audioInfoDisplay += bitrateString + " b/s   ";
   }
   if (sampleRateString.length() > 0) {
-      audioInfoDisplay += sampleRateString + " Hz   ";
+      audioInfoDisplay += sampleRateString + " Hz    ";
   }
   if (bitsPerSampleString.length() > 0) {
       audioInfoDisplay += bitsPerSampleString + " bit";
   }
 
   // Wyświetlenie parametrów audio
-  drawStringFont(&FreeMonoBold12pt7b, 5, 260, audioInfoDisplay.c_str(), COLOR_YELLOW);
+  drawStringFont(&FreeMonoBold12pt7b, 5, 250, audioInfoDisplay.c_str(), COLOR_YELLOW);
 
   // Połączenie napisu "VOL " z wartością głośności
   volumeDisplay = "VOL " + String(volumeValue);
-  drawStringFont(&FreeMonoBold12pt7b, 5, 285, volumeDisplay.c_str(), COLOR_WHITE);
+  drawStringFont(&FreeMonoBold12pt7b, 5, 280, volumeDisplay.c_str(), COLOR_WHITE);
 
   // Wyświetlenie typu pliku na ekranie
+  
   drawStringFont(&FreeMonoBold12pt7b, 270, 310, fileType.c_str(), COLOR_CYAN );
 
   Serial.print("File type: ");
@@ -2217,6 +2219,90 @@ void displayRadio()
 
 
 }
+
+
+unsigned long lastSwitch = 0;
+int messageIndex = 0;
+int namedayLineIndex = 0;
+std::vector<String> namedayLines;  // gotowe linie imienin
+
+void showCalendarCarousel() {
+  unsigned long now = millis();
+
+  // --- czas odświeżania ---
+  unsigned long interval = (messageIndex == 3) ? 5000 : 10000; // imieniny co 5s, reszta co 10s
+
+  if (now - lastSwitch > interval) {
+    lastSwitch = now;
+
+    // czyścimy linię pogodynki
+    tft_fillRect(0, 160, TFT_WIDTH, 40, 0, 0, 0);
+
+    if (messageIndex == 0) {
+      String msg = "Dzisiaj jest " + calendar + " roku";
+      drawStringFont(&FreeSans12pt7b, 0, 190, normalizePolish(msg).c_str(), COLOR_GOLD);
+      messageIndex++;
+
+    } else if (messageIndex == 1) {
+      String msg = "Wschod Slonca: " + sunrise + "  Zachod Slonca: " + sunset;
+      drawStringFont(&FreeSans12pt7b, 0, 190, normalizePolish(msg).c_str(), COLOR_GOLD);
+      messageIndex++;
+
+    } else if (messageIndex == 2) {
+      String msg = "Dlugosc dnia: " + dayLength;
+      drawStringFont(&FreeSans12pt7b, 0, 190, normalizePolish(msg).c_str(), COLOR_GOLD);
+      messageIndex++;
+
+    } else if (messageIndex == 3) {
+      // Przygotuj linie imienin jeśli jeszcze nie zrobione
+      if (namedayLines.empty()) {
+        String tekst = "Imieniny: " + namedays;
+        tekst = normalizePolish(tekst);
+
+        // renderowanie do bufora stringów (bez rysowania)
+        int16_t cursorY = 0;
+        String tmp = tekst;
+        while (tmp.length() > 0) {
+          String line = tmp;
+          int cut = line.length();
+
+          // Dopasuj do maxWidth
+          while (line.length() > 0) {
+            int16_t w = 0;
+            for (int i = 0; i < line.length(); i++) {
+              char c = line[i];
+              if (c < FreeSans12pt7b.first || c > FreeSans12pt7b.last)
+                continue;
+              GFXglyph *glyph = &FreeSans12pt7b.glyph[c - FreeSans12pt7b.first];
+              w += glyph->xAdvance;
+            }
+            if (w <= 480) break;
+            int lastSpace = line.lastIndexOf(' ');
+            if (lastSpace < 0) break;
+            line = line.substring(0, lastSpace);
+          }
+
+          namedayLines.push_back(line);
+          tmp = tmp.substring(line.length());
+          tmp.trim();
+        }
+        namedayLineIndex = 0;
+      }
+
+      // Wyświetl jedną linię imienin
+      if (namedayLineIndex < namedayLines.size()) {
+        drawStringFont(&FreeSans12pt7b, 0, 190, namedayLines[namedayLineIndex].c_str(), COLOR_GOLD);
+        namedayLineIndex++;
+      } else {
+        // Koniec listy → reset
+        namedayLines.clear();
+        namedayLineIndex = 0;
+        messageIndex = 0;
+      }
+    }
+  }
+}
+
 
 
 void setup()
@@ -2259,6 +2345,8 @@ void setup()
     Serial.println("Błąd pamięci PSRAM");
   }
 
+  drawStringFont(&FreeSansBold18pt7b, 60, 150, "WITAJ SLUCHACZU !", COLOR_YELLOW);
+
   // Inicjalizacja karty SD wraz z pierwszyn utworzeniem wymaganych plików w głównym katalogu karty, jesli pliki już istnieją funkcja sprawdza ich obecność
   SDinit();
 
@@ -2275,7 +2363,7 @@ void setup()
   if (wifiManager.autoConnect("ESP Internet Radio"))
   {
     Serial.println("Połączono z siecią WiFi");
-
+    drawStringFont(&FreeSansBold18pt7b, 70, 220, "POLĄCZONO Z WIFI", COLOR_GREEN);
     configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", ntpServer); // Konfiguracja strefy czasowej dla Polski z czasem letnim
     timer1.attach(1, updateTimer);   // Ustaw timer, aby wywoływał funkcję updateTimer co sekundę
     timer2.attach(300, getWeatherData);   // Ustaw timer, aby wywoływał funkcję getWeatherData co 5 minut
@@ -2285,7 +2373,7 @@ void setup()
     fetchStationsFromServer();
     changeStation();
     getWeatherData();
-    //fetchAndDisplayCalendar();
+    fetchAndDisplayCalendar();
   }
   else
   {
@@ -2302,6 +2390,7 @@ void loop()
   processIRCode();         // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
   volumeSetFromRemote();   // Obsługa regulacji głośności z pilota zdalnego sterowania
   vTaskDelay(2);           // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
+  showCalendarCarousel();   // wywołanie karuzeli kalendarza/pogody
 
   if (IRrightArrow == true)  // Prawy przycisk kierunkowy w pilocie
   {
