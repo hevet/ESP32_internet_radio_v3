@@ -3,6 +3,7 @@
 #include <FreeMonoBold18pt7b.h>   // Czcionka Mono (stała szerokość), 18pt, pogrubiona
 #include <FreeSansBold18pt7b.h>   // Czcionka Sans, 18pt, pogrubiona
 #include <FreeMono18pt7b.h>       // Czcionka Mono (stała szerokość), 18pt, normalna
+#include <FreeSans24pt7b.h>       // Czcionka Sans, 18pt, normalna
 
 #include "Arduino.h"              // Standardowy nagłówek Arduino, który dostarcza podstawowe funkcje i definicje
 #include <HTTPClient.h>           // Biblioteka do wykonywania żądań HTTP, umożliwia komunikację z serwerami przez protokół HTTP
@@ -40,15 +41,12 @@
 #define I2S_BCLK      16          // Podłączenie po pinu BCK na module DAC z PCM5102A
 #define I2S_LRC       18          // Podłączenie do pinu LCK na module DAC z PCM5102A
 
-
-
 // Makra upraszczające sterowanie liniami TFT
 #define CS_ACTIVE   digitalWrite(TFT_CS, LOW)   // Aktywacja wyświetlacza (CS = LOW)
 #define CS_IDLE     digitalWrite(TFT_CS, HIGH)  // Dezaktywacja wyświetlacza (CS = HIGH)
 
 #define DC_COMMAND  digitalWrite(TFT_DC, LOW)   // Tryb komend (DC = LOW) – dane traktowane jako instrukcje
 #define DC_DATA     digitalWrite(TFT_DC, HIGH)  // Tryb danych (DC = HIGH) – dane traktowane jako piksele
-
 
 #define MAX_STATIONS 99           // Maksymalna liczba stacji radiowych, które mogą być przechowywane w jednym banku
 #define STATION_NAME_LENGTH 42    // Nazwa stacji wraz z bankiem i numerem stacji do wyświetlenia w pierwszej linii na ekranie
@@ -75,23 +73,23 @@
 #define STATIONS_URL18  "https://raw.githubusercontent.com/sarunia/ESP32_stream/main/radio_v2_bank_18"      // Adres URL do pliku z listą stacji radiowych
 
 // Wyraźne kolory RGB
-#define COLOR_RED        255, 0, 0
-#define COLOR_GREEN      0, 255, 0
-#define COLOR_BLUE       0, 0, 255
-#define COLOR_YELLOW     255, 255, 0
-#define COLOR_CYAN       0, 255, 255
-#define COLOR_MAGENTA    255, 0, 255
-#define COLOR_ORANGE     255, 128, 0
-#define COLOR_PURPLE     128, 0, 255
-#define COLOR_PINK       255, 0, 128
-#define COLOR_LIME       128, 255, 0
-#define COLOR_TURQUOISE  0, 128, 255
-#define COLOR_WHITE      255, 255, 255
-#define COLOR_GOLD       231, 211, 90
+#define COLOR_RED        255, 0, 0     // czerwony
+#define COLOR_GREEN      0, 255, 0     // zielony
+#define COLOR_BLUE       0, 0, 255     // niebieski
+#define COLOR_YELLOW     255, 255, 0   // żółty
+#define COLOR_CYAN       0, 255, 255   // cyjan (niebiesko-zielony)
+#define COLOR_MAGENTA    255, 0, 255   // magenta (różowo-fioletowy)
+#define COLOR_ORANGE     255, 128, 0   // pomarańczowy
+#define COLOR_PURPLE     128, 0, 255   // fioletowy
+#define COLOR_PINK       255, 0, 128   // różowy
+#define COLOR_LIME       128, 255, 0   // limonkowy (jasnozielony)
+#define COLOR_TURQUOISE  0, 128, 255   // turkusowy (niebiesko-morski)
+#define COLOR_WHITE      255, 255, 255 // biały
+#define COLOR_GOLD       231, 211, 90  // złoty
 
-#define COLOR_BLACK      0, 0, 0
+#define COLOR_BLACK      0, 0, 0       // czarny
 
-#define DISPLAY_TIMEOUT 12000   // 12 sekund
+#define DISPLAY_TIMEOUT  12000         // czas wygaszenia ekranu = 12 sekund
 
 int currentSelection = 0;         // Numer aktualnego wyboru na ekranie OLED
 int firstVisibleLine = 0;         // Numer pierwszej widocznej linii na ekranie OLED
@@ -115,6 +113,11 @@ int volumeArray[100];             // Wartości głośności dla 100 stacji w ka�
 int cycle = 0;                    // Numer cyklu do danych pogodowych wyświetlanych w trzech rzutach co 10 sekund
 int maxVisibleLines = 4;          // Maksymalna liczba widocznych linii na ekranie OLED
 
+unsigned long lastSwitch = 0;       // znacznik czasu (ms), kiedy ostatnio przełączono linię/wiadomość
+int messageIndex = 0;               // indeks aktualnie wyświetlanej wiadomości
+int namedayLineIndex = 0;           // indeks aktualnie wyświetlanej linii imienin
+std::vector<String> namedayLines;   // wektor z gotowymi liniami tekstu imienin
+
 bool encoderButton1 = false;      // Flaga określająca, czy przycisk enkodera 1 został wciśnięty
 bool encoderButton2 = false;      // Flaga określająca, czy przycisk enkodera 2 został wciśnięty
 bool fileEnd = false;             // Flaga sygnalizująca koniec odtwarzania pliku audio
@@ -133,6 +136,7 @@ bool playPreviousFile = false;    // Flaga określająca przejście do poprzedni
 bool weatherServerConnection = false;  // Flaga określająca połączenie z serwerem pogody
 bool folderSelection = false;     // Flaga określająca wyświetlanie listy folderów z karty SD
 bool fileSelection = false;       // Flaga określająca wyświetlanie listy plików z aktualnego folderu
+bool bankBlink = false;
 
 // Definicje flag do obsługi z pilota zdalnego sterowania z protokołu NEC 38kHz
 bool IRrightArrow = false;        // Flaga określająca użycie zdalnego sterowania z pilota IR - kierunek w prawo
@@ -162,6 +166,7 @@ unsigned long lastMuteBlinkTime = 0;
 unsigned long lastPauseBlinkTime = 0;
 unsigned long lastNoStreamBlinkTime = 0;
 
+
 String directories[MAX_DIRECTORIES];   // Tablica do przechowywania nazw folderów na karcie SD
 String files[MAX_FILES];               // Tablica do przechowywania nazw plików na karcie SD
 
@@ -189,7 +194,6 @@ String namedays;                       // Imieniny przypadające na dany dzień
 String fileType;                       // Typ pliku (np. MP3, WAV, FLAC)
 String volumeDisplay;                  // Tekst z poziomem głośności (np. "VOL 12")
 
-
 // Przygotowanie danych pogody do wyświetlenia
 String tempStr;           // Zmienna do przechowywania temperatury
 String feels_likeStr;     // Zmienna do przechowywania temperatury odczuwalnej
@@ -205,8 +209,6 @@ AudioBuffer audioBuffer;
 Ticker timer1;                            // Timer do updateTimer co 1s
 Ticker timer2;                            // Timer do getWeatherData co 60s
 Ticker timer3;                            // Timer do przełączania wyświetlania danych pogodoych w ostatniej linii co 10s
-Ticker timer4;                            // Timer do włączania na ekran kartki z kalendarza na 20 sekund
-Ticker timer5; 
 
 WiFiClient client;                        // Obiekt do obsługi połączenia WiFi dla klienta HTTP
 
@@ -406,6 +408,7 @@ uint32_t reverse_bits(uint32_t inval, int bits)
   return 0;
 }
   
+
 // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
 void processIRCode()
 {
@@ -589,6 +592,7 @@ void tft_setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
   tft_command(0x2C);                // Komenda: Memory Write (rozpoczęcie wysyłania danych do wybranego okna)
 }
 
+
 // Inicjalizacja wyświetlacza TFT
 void tft_init()
 {
@@ -644,90 +648,140 @@ void tft_fillScreen(uint8_t r, uint8_t g, uint8_t b)
 }
 
 
-// Wypełnianie prostokąta kolorem RGB
+/**
+ * Wypełnia prostokąt na wyświetlaczu TFT kolorem RGB.
+ *
+ * @param x  współrzędna X lewego górnego rogu prostokąta
+ * @param y  współrzędna Y lewego górnego rogu prostokąta
+ * @param w  szerokość prostokąta w pikselach
+ * @param h  wysokość prostokąta w pikselach
+ * @param r  składowa koloru (czerwony, 0–255)
+ * @param g  składowa koloru (zielony, 0–255)
+ * @param b  składowa koloru (niebieski, 0–255)
+ */
 void tft_fillRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
                   uint8_t r, uint8_t g, uint8_t b)
 {
-  // Ustaw obszar do rysowania (od x,y do x+w-1, y+h-1)
+  // Ustaw obszar do rysowania (tzw. address window) – wszystkie dane SPI
+  // wysłane w tym trybie zostaną wpisane wprost do prostokąta [x..x+w-1, y..y+h-1].
   tft_setAddrWindow(x, y, x + w - 1, y + h - 1);
-  DC_DATA;
-  CS_ACTIVE;
 
-  // Bufor dla jednej linii
+  DC_DATA;   // Przełącz linię DC w tryb danych (a nie komend)
+  CS_ACTIVE; // Aktywuj chip select (rozpoczęcie transmisji do kontrolera TFT)
+
+  // Bufor dla jednej linii obrazu (każdy piksel = 3 bajty RGB)
   static uint8_t line[TFT_WIDTH * 3];
-  for (uint16_t i = 0; i < w; i++) {
-    line[i * 3 + 0] = r;
-    line[i * 3 + 1] = g;
-    line[i * 3 + 2] = b;
+
+  // Wypełnij bufor kolorem: każdy piksel to (r,g,b)
+  for (uint16_t i = 0; i < w; i++)
+  {
+    line[i * 3 + 0] = r; // czerwony
+    line[i * 3 + 1] = g; // zielony
+    line[i * 3 + 2] = b; // niebieski
   }
 
-  // Wypełnianie kolejnych linii
-  for (uint16_t j = 0; j < h; j++) {
+  // Wyślij kolejne linie do wyświetlacza
+  for (uint16_t j = 0; j < h; j++)
+  {
+    // Przesyłamy dane jednej linii przez SPI (szerokość * 3 bajty RGB)
     spi.writeBytes(line, w * 3);
+
+    // yield() oddaje sterowanie schedulerowi (ważne na ESP8266/ESP32,
+    // żeby nie blokować całkowicie innych zadań)
     yield();
   }
 
-  CS_IDLE;
+  CS_IDLE; // Zakończ transmisję (odznacz chip select)
 }
 
 
-void drawCharFont(const GFXfont *font, int16_t x, int16_t y, char c,
-                  uint8_t r, uint8_t g, uint8_t b)
+
+/**
+ * Rysuje pojedynczy znak na ekranie TFT z wykorzystaniem czcionki GFX.
+ *
+ * @param font  wskaźnik do struktury czcionki (GFXfont)
+ * @param x     pozycja X (początek znaku, lewy górny róg względem offsetu)
+ * @param y     pozycja Y (pozycja bazowa znaku – linia odniesienia baseline)
+ * @param c     znak do narysowania
+ * @param r,g,b składowe koloru (RGB) w zakresie 0–255
+ */
+void drawCharFont(const GFXfont *font, int16_t x, int16_t y, char c, uint8_t r, uint8_t g, uint8_t b)
 {
-    if (c < font->first || c > font->last) return;
+  // Sprawdź, czy znak mieści się w zakresie obsługiwanym przez czcionkę
+  if (c < font->first || c > font->last)
+    return;
 
-    GFXglyph *glyph = &font->glyph[c - font->first];
-    const uint8_t *bitmap = font->bitmap + glyph->bitmapOffset;
+  // Pobierz informacje o znaku (szerokość, wysokość, offsety, bitmapOffset)
+  GFXglyph *glyph = &font->glyph[c - font->first];
+  // Wskaźnik do danych bitmapy znaku
+  const uint8_t *bitmap = font->bitmap + glyph->bitmapOffset;
 
-    int w = glyph->width;
-    int h = glyph->height;
+  // Wymiary znaku w pikselach
+  int w = glyph->width;
+  int h = glyph->height;
 
-    int16_t xPos = x + glyph->xOffset;
-    int16_t yPos = y + glyph->yOffset;
+  // Pozycja znaku na ekranie (z uwzględnieniem przesunięcia offset)
+  int16_t xPos = x + glyph->xOffset;
+  int16_t yPos = y + glyph->yOffset;
 
-    // Ustaw okno raz dla całego znaku
-    tft_setAddrWindow(xPos, yPos, xPos + w - 1, yPos + h - 1);
+  // Ustawienie obszaru rysowania (window) raz dla całego znaku
+  // zamiast ustawiać dla każdego piksela – to znacznie przyspiesza rysowanie
+  tft_setAddrWindow(xPos, yPos, xPos + w - 1, yPos + h - 1);
 
-    int bit = 0;
-    uint8_t bits = 0;
+  int bit = 0;       // licznik bitów
+  uint8_t bits = 0;  // aktualny bajt z bitmapy (8 pikseli)
 
-    for (int yy = 0; yy < h; yy++) {
-        for (int xx = 0; xx < w; xx++) {
-            if (!(bit & 7)) {
-                bits = *bitmap++;
-            }
-            if (bits & 0x80) {
-                tft_data(r);
-                tft_data(g);
-                tft_data(b);
-            } else {
-                tft_data(0);
-                tft_data(0);
-                tft_data(0);
-            }
-            bits <<= 1;
-            bit++;
-        }
+  // Iteracja po wysokości znaku
+  for (int yy = 0; yy < h; yy++)
+  {
+    // Iteracja po szerokości znaku
+    for (int xx = 0; xx < w; xx++)
+    {
+      // Co 8 pikseli wczytujemy nowy bajt z bitmapy
+      if (!(bit & 7))
+      {
+        bits = *bitmap++;
+      }
+
+      // Najbardziej znaczący bit określa, czy piksel ma być rysowany (1) czy pusty (0)
+      if (bits & 0x80)
+      {
+        // Piksel w kolorze podanym w RGB
+        tft_data(r);
+        tft_data(g);
+        tft_data(b);
+      }
+      else
+      {
+        // Piksel "tła" (czarny)
+        tft_data(0);
+        tft_data(0);
+        tft_data(0);
+      }
+
+      // Przesunięcie bitów w lewo, aby sprawdzić następny piksel
+      bits <<= 1;
+      bit++;
     }
+  }
 }
-
 
 
 // Rysowanie napisu dla dowolnej czcionki
 void drawStringFont(const GFXfont* font, int16_t x, int16_t y, const char* str, uint8_t r, uint8_t g, uint8_t b)
 {
-    int16_t cursorX = x;
+  int16_t cursorX = x;
 
-    while (*str)
-    {
-        uint8_t c = *str++;
-        if (c < font->first || c > font->last)
-            continue;  // Pomijaj znaki spoza zakresu czcionki
+  while (*str)
+  {
+    uint8_t c = *str++;
+    if (c < font->first || c > font->last)
+      continue;  // Pomijaj znaki spoza zakresu czcionki
 
-        GFXglyph *glyph = &font->glyph[c - font->first];
-        drawCharFont(font, cursorX, y, c, r, g, b); // tu już nie dodajemy yOffset
-        cursorX += glyph->xAdvance;
-    }
+    GFXglyph *glyph = &font->glyph[c - font->first];
+    drawCharFont(font, cursorX, y, c, r, g, b); // tu już nie dodajemy yOffset
+    cursorX += glyph->xAdvance;
+  }
 }
 
 
@@ -796,44 +850,43 @@ void updateWeather()
   float pressure = main["pressure"].as<float>();  // Pobiera ciśnienie powietrza w hPa
 
   Serial.println("Dane z JSON:");
-  Serial.print("Data: ");
+  Serial.print("Data ");
   Serial.println(formattedDate);
-  Serial.print("Temperatura: ");
+  Serial.print("Temperatura ");
   Serial.print(temp, 2);
   Serial.println(" °C");
-  tempStr = "Temperatura: " + String(temp, 2) + " C";
+  tempStr = "Temperatura " + String(temp, 2) + " C";
   
-  Serial.print("Odczuwalna temperatura: ");
+  Serial.print("Odczuwalna temperatura ");
   Serial.print(feels_like, 2);
   Serial.println(" °C");
-  feels_likeStr = "Odczuwalna: " + String(feels_like, 2) + " C";
+  feels_likeStr = "Odczuwalna " + String(feels_like, 2) + " C";
   
-  Serial.print("Wilgotność: ");
+  Serial.print("Wilgotność ");
   Serial.print(humidity);
   Serial.println(" %");
-  humidityStr = "Wilgotnosc: " + String(humidity) + " %";
+  humidityStr = "Wilgotnosc " + String(humidity) + " %";
   
-  Serial.print("Ciśnienie: ");
+  Serial.print("Ciśnienie ");
   Serial.print(pressure);
   Serial.println(" hPa");
-  pressureStr = "Cisnienie: " + String(pressure, 2) + " hPa";
+  pressureStr = "Cisnienie " + String(pressure, 2) + " hPa";
   
-  Serial.print("Opis pogody: ");
+  Serial.print("Opis pogody ");
   Serial.println(weatherDescription);
-  Serial.print("Ikona: ");
+  Serial.print("Ikona ");
   Serial.println(icon);
   
-  Serial.print("Predkosc wiatru: ");
+  Serial.print("Predkosc wiatru ");
   Serial.print(windSpeed, 2);
   Serial.println(" m/s");
-  windStr = "Wiatr: " + String(windSpeed) + " m/s";
+  windStr = "Wiatr " + String(windSpeed) + " m/s";
   
-  Serial.print("Porywy wiatru: ");
+  Serial.print("Porywy wiatru ");
   Serial.print(windGust, 2);
   Serial.println(" m/s");
-  windGustStr = "W porywach: " + String(windGust) + " m/s";
+  windGustStr = "W porywach " + String(windGust) + " m/s";
 }
-
 
 
 // Funkcja do przełączania między różnymi danymi pogodowymi na ekranie TFT
@@ -866,8 +919,8 @@ void switchWeatherData()
     }
 
     // Rysowanie danych pogodowych nad wierszem audioInfo
-    drawStringFont(&FreeSans12pt7b, 0, 220, line1.c_str(), COLOR_CYAN);
-    drawStringFont(&FreeSans12pt7b, 240, 220, line2.c_str(), COLOR_CYAN);
+    drawStringFont(&FreeSans12pt7b, 0, 220, line1.c_str(), COLOR_PINK);
+    drawStringFont(&FreeSans12pt7b, 240, 220, line2.c_str(), COLOR_PINK);
   }
   else
   {
@@ -1157,12 +1210,11 @@ void updateTimer()
 
   // --- Wyczyść tylko obszar zegara ---
   // tft_fillRect(x, y, width, height, R, G, B)
-  tft_fillRect(330, 280, 180, 40, 0, 0, 0); // czarne tło pod zegar
+  tft_fillRect(280, 270, 210, 60, 0, 0, 0); // czarne tło pod zegar
 
   // --- Narysuj zegar ---
-  drawStringFont(&FreeSansBold18pt7b, 340 , 310 , timeString, 231, 211, 90);
+  drawStringFont(&FreeSans24pt7b, 290 , 310 , timeString, 231, 211, 90);
 }
-
 
 
 // Funkcja do pobierania i wyciągania danych kalendarzowych z HTML poniższego adresu URL
@@ -1273,7 +1325,6 @@ void fetchAndDisplayCalendar()
         }
       }
 
-
       // Wyświetlamy dane na Serial Monitorze
       calendar = weekday + ", " + day + " " + month + " " + year;
       calendar.replace(">", "");  // Usuwamy wszystkie znaki '>'
@@ -1293,36 +1344,6 @@ void fetchAndDisplayCalendar()
       timeDisplay = false;
       displayActive = true;
       displayStartTime = millis();
-      //processText(calendar);  // Podstawienie polskich znaków diakrytycznych
-      //processText(imieniny);  // Podstawienie polskich znaków diakrytycznych
-      //u8g2.clearBuffer();
-      //u8g2.setFont(spleen6x12PL);
-      //u8g2.setCursor(0, 12);
-      //u8g2.print("Dzisiaj jest " + calendar);
-
-      //String wschod = "Wschód słońca: ";
-      //processText(wschod);  // Podstawienie polskich znaków diakrytycznych
-      //String zachod = "  Zachód słońca: ";
-      //processText(zachod);  // Podstawienie polskich znaków diakrytycznych
-      //u8g2.setCursor(0, 24);
-      //u8g2.print(wschod + wschod_slonca + zachod + zachod_slonca);
-
-      //String dayLenght = "Długość dnia: ";
-      //processText(dayLenght);  // Podstawienie polskich znaków diakrytycznych
-      //u8g2.setCursor(0, 36);
-      //u8g2.print(dayLenght + dlugosc_dnia);
-
-      //String line1 = imieniny.substring(0, 32);  // Pierwsze 32 znaki
-      //u8g2.setCursor(0, 48);
-      //u8g2.print("Imieniny: " + line1);
-
-      //String line2 = imieniny.substring(32, 74);  // Kolejne 42 znaki
-      //u8g2.setCursor(0, 60);
-      //u8g2.print(line2);
-
-      //displayTimeout = 12000;  // Zwiększenie czasu bezczynności na 12 sekund
-      
-      //u8g2.sendBuffer();
 
     }
 
@@ -1342,7 +1363,8 @@ void fetchAndDisplayCalendar()
 }
 
 // Zamiana polskich znaków na "bezogonkowe"
-String normalizePolish(String s) {
+String normalizePolish(String s)
+{
   s.replace("ą","a"); s.replace("ć","c"); s.replace("ę","e");
   s.replace("ł","l"); s.replace("ń","n"); s.replace("ó","o");
   s.replace("ś","s"); s.replace("ż","z"); s.replace("ź","z");
@@ -1467,34 +1489,6 @@ void SDinit()
   }
 }
 
-void calendarPage()
-{
-  //tft_fillScreen(0, 0, 0); // czarne tło
-  // Czyści obszar od góry ekranu do linii 279 włącznie
-  tft_fillRect(0, 0, TFT_WIDTH, 280, 0, 0, 0);
-
-  String date = "Dzisiaj jest " + calendar + " roku";
-  date = normalizePolish(date);
-  //drawStringFreeSans(0, 25,  date.c_str(), 0, 255, 0);       // zielony
-  drawStringFont(&FreeSans12pt7b, 0, 25,  date.c_str(), 0, 255, 0);
-
-  String tekst1 = "Wschod slonca " + sunrise + "   Zachod slonca " + sunset;
-  tekst1 = normalizePolish(tekst1);
-  //drawStringFreeSans(0, 54,  tekst1.c_str(), 0, 255, 0);       // zielony
-  drawStringFont(&FreeSans12pt7b, 0, 54,  tekst1.c_str(), 0, 255, 0);
-
-  String tekst2 = "Dlugosc dnia " + dayLength;
-  tekst2 = normalizePolish(tekst2);
-  //drawStringFreeSans(0, 84,  tekst2.c_str(), 0, 255, 0);       // zielony
-  drawStringFont(&FreeSans12pt7b, 0, 84,  tekst2.c_str(), 0, 255, 0);
-
-  String tekst3 = "Imieniny obchodza:   " + namedays;
-  tekst3 = normalizePolish(tekst3); // usuwamy polskie znaki
-
-  drawWrappedStringFont(&FreeSans12pt7b, 0, 115, tekst3.c_str(), 0, 255, 255, 480, 27);
-
-
-}
 
 
 // Funkcja do pobierania listy stacji radiowych z serwera i zapisania ich w wybranym banku na karcie SD
@@ -1954,6 +1948,7 @@ void audio_info(const char *info)
 {
   Serial.print("info        ");
   Serial.println(info);
+
   // Znajdź pozycję "BitRate:" w tekście
   int bitrateIndex = String(info).indexOf("BitRate:");
   if (bitrateIndex != -1)
@@ -1969,7 +1964,7 @@ void audio_info(const char *info)
     }
     if (currentOption == INTERNET_RADIO)
     {
-      //displayRadio();
+      displayRadio();
     }
   }
 
@@ -2036,6 +2031,7 @@ void audio_info(const char *info)
     flac = false;
     mp3 = false;
   }
+
 }
 
 
@@ -2121,16 +2117,39 @@ void audio_showstation(const char *info)
   Serial.println(info);
 }
 
-unsigned long lastDisplayTime = 0;   // globalnie, czas ostatniego wyświetlenia streamtitle
-const unsigned long displayDelay = 2000; // 2 sekundy w ms
+
+unsigned long stationInfoTimer = 0;
+bool stationInfoPending = false;
 
 void audio_showstreamtitle(const char *info)
 {
     Serial.print("streamtitle ");
     Serial.println(info);
+
+    // zapisz do globalnej zmiennej
     stationInfo = String(info);
 
-    displayRadio();           // Wywołanie funkcji wyświetlającej radio
+    // ustaw timer na 2 sekundy
+    stationInfoTimer = millis() + 2000;
+    stationInfoPending = true;
+}
+
+void handleStationInfoUpdate()
+{
+  if (stationInfoPending && millis() >= stationInfoTimer)
+  {
+    stationInfoPending = false; // wyłącz flagę
+
+    int startX = 0;        // lewa krawędź
+    int startY = 40;       // początek pierwszej linii
+    int width  = 480;      // pełna szerokość ekranu
+    int height = 30 * 4;   // 4 linie po 30 px = 120 px
+
+    tft_fillRect(startX, startY, width, height, 0, 0, 0); // czarne tło
+
+    // --- Informacje o stacji ---
+    drawWrappedStringFont(&FreeSans12pt7b, 0, 70, stationInfo.c_str(), COLOR_LIME, 480, 30);
+  }
 }
 
 void audio_commercial(const char *info)
@@ -2172,7 +2191,8 @@ void displayRadio()
   else if (posBank != -1) pos = posBank;
   else if (posStacja != -1) pos = posStacja;
 
-  if (pos != -1) {
+  if (pos != -1)
+  {
       extraInfo = mainName.substring(pos);
       mainName  = mainName.substring(0, pos);
       mainName.trim();
@@ -2183,23 +2203,29 @@ void displayRadio()
   drawStringFont(&FreeSansBold18pt7b, 0, 35, mainName.c_str(), COLOR_TURQUOISE);
 
   // --- Informacje o stacji ---
-  drawWrappedStringFont(&FreeSans12pt7b, 0, 70, stationInfo.c_str(), COLOR_GREEN, 480, 30);
+  drawWrappedStringFont(&FreeSans12pt7b, 0, 70, stationInfo.c_str(), COLOR_LIME, 480, 30);
 
   // --- Numer banku i numer stacji ---
-  if (extraInfo.length() > 0) {
+  if (extraInfo.length() > 0)
+  {
       drawStringFont(&FreeMonoBold12pt7b, 0, 310, extraInfo.c_str(), COLOR_ORANGE);
   }
 
-  // Tworzymy napis z bitrate, sample rate i bits per sample
+  // Utworzenie napisu z bitrate, sample rate i bits per sample
   String audioInfoDisplay = "";
 
-  if (bitrateString.length() > 0) {
+  if (bitrateString.length() > 0)
+  {
       audioInfoDisplay += bitrateString + " b/s   ";
   }
-  if (sampleRateString.length() > 0) {
+
+  if (sampleRateString.length() > 0)
+  {
       audioInfoDisplay += sampleRateString + " Hz    ";
   }
-  if (bitsPerSampleString.length() > 0) {
+
+  if (bitsPerSampleString.length() > 0)
+  {
       audioInfoDisplay += bitsPerSampleString + " bit";
   }
 
@@ -2211,74 +2237,84 @@ void displayRadio()
   drawStringFont(&FreeMonoBold12pt7b, 5, 280, volumeDisplay.c_str(), COLOR_WHITE);
 
   // Wyświetlenie typu pliku na ekranie
-  
-  drawStringFont(&FreeMonoBold12pt7b, 270, 310, fileType.c_str(), COLOR_CYAN );
+  drawStringFont(&FreeMonoBold12pt7b, 150, 280, fileType.c_str(), COLOR_TURQUOISE);
 
-  Serial.print("File type: ");
-  Serial.println(fileType);
-
+  //Serial.print("File type: ");
+  //Serial.println(fileType);
 
 }
 
 
-unsigned long lastSwitch = 0;
-int messageIndex = 0;
-int namedayLineIndex = 0;
-std::vector<String> namedayLines;  // gotowe linie imienin
 
-void showCalendarCarousel() {
+// Funkcja do cyklicznego przełączania kartki z kalendarza 
+void showCalendarCarousel()
+{
   unsigned long now = millis();
 
   // --- czas odświeżania ---
   unsigned long interval = (messageIndex == 3) ? 5000 : 10000; // imieniny co 5s, reszta co 10s
 
-  if (now - lastSwitch > interval) {
+  if (now - lastSwitch > interval)
+  {
     lastSwitch = now;
 
     // czyścimy linię pogodynki
     tft_fillRect(0, 160, TFT_WIDTH, 40, 0, 0, 0);
 
-    if (messageIndex == 0) {
-      String msg = "Dzisiaj jest " + calendar + " roku";
+    if (messageIndex == 0)
+    {
+      String msg = "Dzisiaj jest " + calendar + " r";
       drawStringFont(&FreeSans12pt7b, 0, 190, normalizePolish(msg).c_str(), COLOR_GOLD);
       messageIndex++;
 
-    } else if (messageIndex == 1) {
-      String msg = "Wschod Slonca: " + sunrise + "  Zachod Slonca: " + sunset;
+    }
+    else if (messageIndex == 1)
+    {
+      String msg = "Wschod Slonca " + sunrise + "  Zachod Slonca " + sunset;
       drawStringFont(&FreeSans12pt7b, 0, 190, normalizePolish(msg).c_str(), COLOR_GOLD);
       messageIndex++;
 
-    } else if (messageIndex == 2) {
-      String msg = "Dlugosc dnia: " + dayLength;
+    }
+    else if (messageIndex == 2)
+    {
+      String msg = "Dlugosc dnia " + dayLength;
       drawStringFont(&FreeSans12pt7b, 0, 190, normalizePolish(msg).c_str(), COLOR_GOLD);
       messageIndex++;
 
-    } else if (messageIndex == 3) {
+    }
+    else if (messageIndex == 3)
+    {
       // Przygotuj linie imienin jeśli jeszcze nie zrobione
-      if (namedayLines.empty()) {
-        String tekst = "Imieniny: " + namedays;
+      if (namedayLines.empty())
+      {
+        String tekst = "IMIENINY: " + namedays;
         tekst = normalizePolish(tekst);
 
         // renderowanie do bufora stringów (bez rysowania)
         int16_t cursorY = 0;
         String tmp = tekst;
-        while (tmp.length() > 0) {
+        while (tmp.length() > 0)
+        {
           String line = tmp;
           int cut = line.length();
 
           // Dopasuj do maxWidth
-          while (line.length() > 0) {
+          while (line.length() > 0)
+          {
             int16_t w = 0;
-            for (int i = 0; i < line.length(); i++) {
+            for (int i = 0; i < line.length(); i++)
+            {
               char c = line[i];
               if (c < FreeSans12pt7b.first || c > FreeSans12pt7b.last)
                 continue;
               GFXglyph *glyph = &FreeSans12pt7b.glyph[c - FreeSans12pt7b.first];
               w += glyph->xAdvance;
             }
-            if (w <= 480) break;
+            if (w <= 480)
+              break;
             int lastSpace = line.lastIndexOf(' ');
-            if (lastSpace < 0) break;
+            if (lastSpace < 0)
+              break;
             line = line.substring(0, lastSpace);
           }
 
@@ -2290,10 +2326,13 @@ void showCalendarCarousel() {
       }
 
       // Wyświetl jedną linię imienin
-      if (namedayLineIndex < namedayLines.size()) {
+      if (namedayLineIndex < namedayLines.size())
+      {
         drawStringFont(&FreeSans12pt7b, 0, 190, namedayLines[namedayLineIndex].c_str(), COLOR_GOLD);
         namedayLineIndex++;
-      } else {
+      } 
+      else
+      {
         // Koniec listy → reset
         namedayLines.clear();
         namedayLineIndex = 0;
@@ -2303,6 +2342,8 @@ void showCalendarCarousel() {
   }
 }
 
+
+/*-------------------------------------------------------GLÓWNY SETUP PROGRAMU----------------------------------------------------------*/
 
 
 void setup()
@@ -2324,9 +2365,7 @@ void setup()
   customSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
 
   tft_init();
-  Serial.println("TFT init done");
-
-  tft_fillScreen(0,0,0);
+  Serial.println("TFT zainicjowany");
 
   audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT); // Konfiguruj pinout dla interfejsu I2S audio
   audio.setVolume(volumeValue); // Ustaw głośność na podstawie wartości zmiennej volumeValue w zakresie 0...21
@@ -2345,12 +2384,13 @@ void setup()
     Serial.println("Błąd pamięci PSRAM");
   }
 
-  drawStringFont(&FreeSansBold18pt7b, 60, 150, "WITAJ SLUCHACZU !", COLOR_YELLOW);
-
-  // Inicjalizacja karty SD wraz z pierwszyn utworzeniem wymaganych plików w głównym katalogu karty, jesli pliki już istnieją funkcja sprawdza ich obecność
+  // Inicjalizacja karty SD wraz z pierwszyn utworzeniem wymaganych plików w głównym katalogu karty, jeśli pliki już istnieją to funkcja sprawdza ich obecność
   SDinit();
 
-  audioBuffer.changeMaxBlockSize(16384);  // Wywołanie metody na obiekcie audioBuffer // is default 1600 for mp3 and aac, set 16384 for FLAC 
+  tft_fillScreen(0,0,0);
+  drawStringFont(&FreeSansBold18pt7b, 50, 100, "WITAJ SLUCHACZU !", COLOR_YELLOW);
+
+  audioBuffer.changeMaxBlockSize(16384);  // Wywołanie metody na obiekcie audioBuffer, is default 1600 for mp3 and aac, set 16384 for FLAC 
 
   // Inicjalizacja WiFiManagera
   WiFiManager wifiManager;
@@ -2363,34 +2403,36 @@ void setup()
   if (wifiManager.autoConnect("ESP Internet Radio"))
   {
     Serial.println("Połączono z siecią WiFi");
-    drawStringFont(&FreeSansBold18pt7b, 70, 220, "POLĄCZONO Z WIFI", COLOR_GREEN);
+    drawStringFont(&FreeSansBold18pt7b, 60, 200, "POLACZONO Z WIFI", COLOR_GREEN);
     configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", ntpServer); // Konfiguracja strefy czasowej dla Polski z czasem letnim
     timer1.attach(1, updateTimer);   // Ustaw timer, aby wywoływał funkcję updateTimer co sekundę
     timer2.attach(300, getWeatherData);   // Ustaw timer, aby wywoływał funkcję getWeatherData co 5 minut
     timer3.attach(10, switchWeatherData);   // Ustaw timer, aby wywoływał funkcję switchWeatherData co 10 sekund
-    //timer4.attach(20, showCalendar);
-    //timer5.attach(60, showRadio);
     fetchStationsFromServer();
     changeStation();
     getWeatherData();
     fetchAndDisplayCalendar();
+
   }
   else
   {
     Serial.println("Brak połączenia z siecią WiFi");
 
   }
-
-
 }
+
+
+/*-------------------------------------------------------GLÓŁWNA PĘTLA PROGRAMU----------------------------------------------------------*/
+
 
 void loop()
 {
-  audio.loop();            // Wykonuje główną pętlę dla obiektu audio (np. odtwarzanie dźwięku, obsługa audio)
-  processIRCode();         // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
-  volumeSetFromRemote();   // Obsługa regulacji głośności z pilota zdalnego sterowania
-  vTaskDelay(2);           // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
-  showCalendarCarousel();   // wywołanie karuzeli kalendarza/pogody
+  audio.loop();               // Wykonuje główną pętlę dla obiektu audio (np. odtwarzanie dźwięku, obsługa audio)
+  processIRCode();            // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
+  volumeSetFromRemote();      // Obsługa regulacji głośności z pilota zdalnego sterowania
+  vTaskDelay(2);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
+  showCalendarCarousel();     // Wywołanie przełączania kalendarza w linii
+  handleStationInfoUpdate();  // Odświeżanie danych ze stacji radiowej
 
   if (IRrightArrow == true)  // Prawy przycisk kierunkowy w pilocie
   {
@@ -2422,11 +2464,8 @@ void loop()
   {
     IRokButton = false;
     displayActive = false;
-    //u8g2.clearBuffer();
-    //u8g2.setFont(u8g2_font_ncenB14_tr);
-    //u8g2.drawStr(20, 25, "POBIERANIE  STACJI");
-    //u8g2.drawStr(20, 50, "Z  SERWERA  GITHUB");
-    //u8g2.sendBuffer();
+    tft_fillRect(0, 280, 200, 40, COLOR_BLACK);
+    drawStringFont(&FreeMonoBold12pt7b, 0, 310, "Pobieram z Github", COLOR_RED);
     currentSelection = 0;
     firstVisibleLine = 0;
     station_nr = 1;
@@ -2434,39 +2473,55 @@ void loop()
     changeStation();
   }
 
-  if (IRbankUp == true) {
+  // Przycisk pilota FF+ zwiększanie numeru banku
+  if (IRbankUp == true)
+  {
     IRbankUp = false;
     timeDisplay = false;
     displayActive = true;
     displayStartTime = millis();
 
     bank_nr++;
-    if (bank_nr > 18) bank_nr = 1;
+    if(bank_nr > 18)
+    {
+      bank_nr = 1;
+    }
 
-    tft_fillRect(150, 150, 200, 40, COLOR_BLACK);
-    String bankNumber = "BANK nr " + String(bank_nr);
-    drawStringFont(&FreeSansBold18pt7b, 150, 180, bankNumber.c_str(), COLOR_RED);
+    tft_fillRect(0, 280, 100, 35, COLOR_BLACK);
+    String bankNumber = "Bank " + String(bank_nr);
+    drawStringFont(&FreeMonoBold12pt7b, 0, 310, bankNumber.c_str(), COLOR_RED);
   }
 
-  if (IRbankDown == true) {
+  // Przycisk pilota FF- zmniejszanie numeru banku
+  if (IRbankDown == true)
+  {
     IRbankDown = false;
     timeDisplay = false;
     displayActive = true;
     displayStartTime = millis();
 
     bank_nr--;
-    if (bank_nr < 1) bank_nr = 18;
+    if (bank_nr < 1)
+    {
+      bank_nr = 18;
+    }
 
-    tft_fillRect(150, 150, 200, 40, COLOR_BLACK);
-    String bankNumber = "BANK nr " + String(bank_nr);
-    drawStringFont(&FreeSansBold18pt7b, 150, 180, bankNumber.c_str(), COLOR_RED);
+    tft_fillRect(0, 280, 100, 40, COLOR_BLACK);
+    String bankNumber = "Bank " + String(bank_nr);
+    drawStringFont(&FreeMonoBold12pt7b, 0, 310, bankNumber.c_str(), COLOR_RED);
   }
 
-  if (displayActive && (millis() - displayStartTime > DISPLAY_TIMEOUT)) {
+  // Powrót do wyświetlania ostatniego numeru banku w dolnej linii po bezczynności podczas wybierania numeru banku bez zatwierdzenia
+  if (displayActive && (millis() - displayStartTime > DISPLAY_TIMEOUT)) 
+  {
     displayActive = false;
     station_nr = previous_station_nr; 
-    bank_nr = previous_bank_nr;   // przywróć poprzedni bank
-    displayRadio();               // wróć do ekranu radia
+    bank_nr = previous_bank_nr;
+
+    String bankNumber = "Bank " + String(bank_nr);
+
+    tft_fillRect(0, 280, 100, 40, COLOR_BLACK);
+    drawStringFont(&FreeMonoBold12pt7b, 0, 310, bankNumber.c_str(), COLOR_ORANGE);
   }
 
 }
