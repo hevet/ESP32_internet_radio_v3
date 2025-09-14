@@ -111,7 +111,7 @@ int previous_folderIndex = 0;     // Numer aktualnie wybranego folderu do przywr
 int volumeValue = 12;             // Wartość głośności, domyślnie ustawiona na 12
 int volumeArray[100];             // Wartości głośności dla 100 stacji w każdym banku
 int cycle = 0;                    // Numer cyklu do danych pogodowych wyświetlanych w trzech rzutach co 10 sekund
-int maxVisibleLines = 4;          // Maksymalna liczba widocznych linii na ekranie OLED
+int maxVisibleLines = 6;          // Maksymalna liczba widocznych linii na ekranie OLED
 
 unsigned long lastSwitch = 0;       // Znacznik czasu (ms), kiedy ostatnio przełączono linię/wiadomość
 int messageIndex = 0;               // Indeks aktualnie wyświetlanej wiadomości
@@ -2274,7 +2274,7 @@ void audio_eof_speech(const char *info)
 void displayStations()
 {
   // Wyczyść obszar ekranu przeznaczony na listę stacji (pierwsze 5 linii = 150 px)
-  tft_fillRect(0, 0, 480, 200, 0, 0, 0);
+  tft_fillRect(0, 0, 480, 230, 0, 0, 0);
 
   // Nagłówek
   String header = "STACJE RADIOWE   " + String(station_nr) + " / " + String(stationsCount);
@@ -2297,24 +2297,22 @@ void displayStations()
       station[j] = EEPROM.read(i * (STATION_NAME_LENGTH + 1) + 1 + j);
     }
 
-
-        // --- Przytnij do 25 znaków ---
+    // --- Przytnij do 25 znaków ---
     String stationNames = String(station);
-    if (stationNames.length() > 25) {
+    if (stationNames.length() > 25)
+    {
       stationNames = stationNames.substring(0, 25);
     }
 
     if (i == currentSelection)
     {
       // Zaznaczona stacja → turkusowy tekst
-      drawWrappedStringFont(&FreeSans12pt7b, 0, displayRow * 30 + 20,
-                            stationNames.c_str(), COLOR_TURQUOISE, 480, 30);
+      drawWrappedStringFont(&FreeSans12pt7b, 0, displayRow * 30 + 20, stationNames.c_str(), COLOR_TURQUOISE, 480, 30);
     }
     else
     {
       // Normalna stacja → zielony tekst
-      drawWrappedStringFont(&FreeSans12pt7b, 0, displayRow * 30 + 20,
-                            stationNames.c_str(), COLOR_LIME, 480, 30);
+      drawWrappedStringFont(&FreeSans12pt7b, 0, displayRow * 30 + 20, stationNames.c_str(), COLOR_LIME, 480, 30);
     }
 
     displayRow++;
@@ -2326,24 +2324,13 @@ void displayRadio()
 {
   tft_fillScreen(0,0,0); // Czyszczenie ekranu
 
-  // --- Podział nazwy stacji ---
+  // --- Przycinanie nazwy stacji do 25 znaków ---
   String mainName = stationName;
-  String extraInfo = "";
-
-  int posBank   = mainName.indexOf("Bank");
-  int posStacja = mainName.indexOf("Stacja");
-  int pos = -1;
-  if (posBank != -1 && posStacja != -1) pos = min(posBank, posStacja);
-  else if (posBank != -1) pos = posBank;
-  else if (posStacja != -1) pos = posStacja;
-
-  if (pos != -1)
+  if (mainName.length() > 25)
   {
-    extraInfo = mainName.substring(pos);
-    mainName  = mainName.substring(0, pos);
-    mainName.trim();
-    extraInfo.trim();
+    mainName = mainName.substring(0, 25);
   }
+  mainName.trim();
 
   // --- Nazwa stacji ---
   drawStringFont(&FreeSansBold18pt7b, 0, 35, mainName.c_str(), COLOR_TURQUOISE);
@@ -2352,10 +2339,18 @@ void displayRadio()
   drawWrappedStringFont(&FreeSans12pt7b, 0, 75, stationInfo.c_str(), COLOR_LIME, 480, 30);
 
   // --- Numer banku i numer stacji ---
-  if (extraInfo.length() > 0)
+  String bankInfo = "Bank " + String(bank_nr);
+
+  // dodaj spację, jeśli bank_nr < 10
+  if
+  (bank_nr < 10)
   {
-    drawStringFont(&FreeMonoBold12pt7b, 0, 310, extraInfo.c_str(), COLOR_ORANGE);
+    bankInfo += " ";
   }
+
+  bankInfo += " Stacja " + String(station_nr);
+
+  drawStringFont(&FreeMonoBold12pt7b, 0, 310, bankInfo.c_str(), COLOR_ORANGE);
 
   // Utworzenie napisu z bitrate, sample rate i bits per sample
   String audioInfoDisplay = "";
@@ -2652,7 +2647,7 @@ void loop()
   audio.loop();               // Wykonuje główną pętlę dla obiektu audio (np. odtwarzanie dźwięku, obsługa audio)
   processIRCode();            // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
   volumeSetFromRemote();      // Obsługa regulacji głośności z pilota zdalnego sterowania
-  vTaskDelay(1);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
+  //vTaskDelay(1);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
   if (displayActive == false)
   {
     showCalendarCarousel();     // Wywołanie przełączania kalendarza w linii
