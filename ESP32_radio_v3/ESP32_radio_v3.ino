@@ -1,9 +1,9 @@
-#include <FreeSans12pt7b.h>       // Czcionka Sans, 12pt, normalna
-#include <FreeMonoBold12pt7b.h>   // Czcionka Mono (stała szerokość), 12pt, pogrubiona
-#include <FreeMonoBold18pt7b.h>   // Czcionka Mono (stała szerokość), 18pt, pogrubiona
-#include <FreeSansBold18pt7b.h>   // Czcionka Sans, 18pt, pogrubiona
-#include <FreeMono18pt7b.h>       // Czcionka Mono (stała szerokość), 18pt, normalna
-#include <FreeSans24pt7b.h>       // Czcionka Sans, 18pt, normalna
+#include <FreeSans12pt7b.h>       // Czcionka Sans, 12pt, normalna – dobra do nagłówków i mniejszych opisów
+#include <FreeMonoBold12pt7b.h>   // Czcionka Mono (stała szerokość), 12pt, pogrubiona – przydatna np. do tabel lub danych liczbowych
+#include <FreeMonoBold18pt7b.h>   // Czcionka Mono (stała szerokość), 18pt, pogrubiona – wyraźna, nadaje się np. do liczników
+#include <FreeSansBold18pt7b.h>   // Czcionka Sans, 18pt, pogrubiona – czytelna, do większych nagłówków i wyróżnień
+#include <FreeMono18pt7b.h>       // Czcionka Mono (stała szerokość), 18pt, normalna – równe odstępy, np. do siatek danych
+#include <DS_DIGII35pt7b.h>       // Czcionka cyfrowa (styl wyświetlacza 7-segmentowego), 35pt – idealna do dużego zegara
 
 #include "Arduino.h"              // Standardowy nagłówek Arduino, który dostarcza podstawowe funkcje i definicje
 #include <HTTPClient.h>           // Biblioteka do wykonywania żądań HTTP, umożliwia komunikację z serwerami przez protokół HTTP
@@ -37,8 +37,8 @@
 #define SD_CS      47             // Pin CS dla karty SD
 
 // Definicje pinów dla I2S modułu DAC z PCM5102A
-#define I2S_DOUT      17          // Podłączenie do pinu DIN na module DAC z PCM5102A
 #define I2S_BCLK      16          // Podłączenie po pinu BCK na module DAC z PCM5102A
+#define I2S_DOUT      17          // Podłączenie do pinu DIN na module DAC z PCM5102A
 #define I2S_LRC       18          // Podłączenie do pinu LCK na module DAC z PCM5102A
 
 // Makra upraszczające sterowanie liniami TFT
@@ -113,10 +113,10 @@ int volumeArray[100];             // Wartości głośności dla 100 stacji w ka�
 int cycle = 0;                    // Numer cyklu do danych pogodowych wyświetlanych w trzech rzutach co 10 sekund
 int maxVisibleLines = 4;          // Maksymalna liczba widocznych linii na ekranie OLED
 
-unsigned long lastSwitch = 0;       // znacznik czasu (ms), kiedy ostatnio przełączono linię/wiadomość
-int messageIndex = 0;               // indeks aktualnie wyświetlanej wiadomości
-int namedayLineIndex = 0;           // indeks aktualnie wyświetlanej linii imienin
-std::vector<String> namedayLines;   // wektor z gotowymi liniami tekstu imienin
+unsigned long lastSwitch = 0;       // Znacznik czasu (ms), kiedy ostatnio przełączono linię/wiadomość
+int messageIndex = 0;               // Indeks aktualnie wyświetlanej wiadomości
+int namedayLineIndex = 0;           // Indeks aktualnie wyświetlanej linii imienin
+std::vector<String> namedayLines;   // Wektor z gotowymi liniami tekstu imienin
 
 bool encoderButton1 = false;      // Flaga określająca, czy przycisk enkodera 1 został wciśnięty
 bool encoderButton2 = false;      // Flaga określająca, czy przycisk enkodera 2 został wciśnięty
@@ -128,7 +128,6 @@ bool flac = false;                // Flaga określająca, czy aktualny plik audi
 bool aac = false;                 // Flaga określająca, czy aktualny plik audio jest w formacie AAC
 bool vorbis = false;              // Flaga określająca, czy aktualny plik audio jest w formacie VORBIS
 bool id3tag = false;              // Flaga określająca, czy plik audio posiada dane ID3
-bool timeDisplay = true;          // Flaga określająca kiedy pokazać czas na wyświetlaczu, domyślnie od razu po starcie
 bool menuEnable = false;          // Flaga określająca, czy na ekranie można wyświetlić menu
 bool bitratePresent = false;      // Flaga określająca, czy na serial terminalu pojawiła się informacja o bitrate - jako ostatnia dana spływajaca z info
 bool playNextFile = false;        // Flaga określająca przejście do kolejnego odtwarzanego pliku audio
@@ -136,7 +135,8 @@ bool playPreviousFile = false;    // Flaga określająca przejście do poprzedni
 bool weatherServerConnection = false;  // Flaga określająca połączenie z serwerem pogody
 bool folderSelection = false;     // Flaga określająca wyświetlanie listy folderów z karty SD
 bool fileSelection = false;       // Flaga określająca wyświetlanie listy plików z aktualnego folderu
-bool bankBlink = false;
+bool bankSwitch = false;          // Flaga określająca aktywny tryb wybierania numeru banku
+bool stationInfoPending = false;  // Flaga sygnalizująca, że informacje o stacji czekają na wyświetlenie/przetworzenie
 
 // Definicje flag do obsługi z pilota zdalnego sterowania z protokołu NEC 38kHz
 bool IRrightArrow = false;        // Flaga określająca użycie zdalnego sterowania z pilota IR - kierunek w prawo
@@ -154,18 +154,15 @@ bool IRpauseResume = false;       // Flaga określająca użycie zdalnego sterow
 bool IRmuteTrigger = false;       // Flaga określająca użycie zdalnego sterowania z pilota IR - przycisk Mute
 bool isMuted = false;             // Flaga pomocnicza czy aktualnie jest wyciszenie
 bool isPaused = false;            // Flaga pomocnicza czy aktualnie jest pauza
+bool stationsList = false;        // Flaga określająca aktywny tryb wyświetlania listy stacji radiowych podczas przewijania wyboru
 
 unsigned long debounceDelay = 300;        // Czas trwania debouncingu w milisekundach
 unsigned long displayTimeout = 6000;      // Czas wyświetlania komunikatu na ekranie w milisekundach
 unsigned long displayStartTime = 0;       // Czas rozpoczęcia wyświetlania komunikatu
 unsigned long seconds = 0;                // Licznik sekund timera
+unsigned long stationInfoTimer = 0;       // Zmienna przechowuje czas (millis) ostatniego uruchomienia timera informacji o stacji
 unsigned char *psramData;                 // Wskaźnik do przechowywania danych stacji w pamięci PSRAM
 unsigned int PSRAM_lenght = MAX_STATIONS * (STATION_NAME_LENGTH) + MAX_STATIONS; // Deklaracja długości pamięci PSRAM
-unsigned long lastCheckTime = 0;          // Zmienna do śledzenia ostatniego czasu wyświetlenia komunikatu
-unsigned long lastMuteBlinkTime = 0;
-unsigned long lastPauseBlinkTime = 0;
-unsigned long lastNoStreamBlinkTime = 0;
-
 
 String directories[MAX_DIRECTORIES];   // Tablica do przechowywania nazw folderów na karcie SD
 String files[MAX_FILES];               // Tablica do przechowywania nazw plików na karcie SD
@@ -408,7 +405,6 @@ uint32_t reverse_bits(uint32_t inval, int bits)
   return 0;
 }
   
-
 // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
 void processIRCode()
 {
@@ -549,7 +545,6 @@ bool isAudioFile(const char *fileNameString)
           strcasecmp(ext, ".alac") == 0);  // ALAC: bezstratny format od Apple, podobny do FLAC
 }
 
-
 // Wysłanie komendy do wyświetlacza TFT
 void tft_command(uint8_t cmd)
 { 
@@ -592,34 +587,93 @@ void tft_setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
   tft_command(0x2C);                // Komenda: Memory Write (rozpoczęcie wysyłania danych do wybranego okna)
 }
 
-
-// Inicjalizacja wyświetlacza TFT
+// Inicjalizacja wyświetlacza
 void tft_init()
 {
-  if(TFT_RST >= 0)                                  // Sprawdzenie, czy pin RESET jest zdefiniowany
+  if (TFT_RST >= 0)
   {
-    pinMode(TFT_RST, OUTPUT);                        // Ustawienie pinu RESET jako wyjście
-    digitalWrite(TFT_RST, LOW);                      // Wymuszenie resetu (niski poziom)
-    delay(50);                                       // Krótka pauza 50 ms
-    digitalWrite(TFT_RST, HIGH);                     // Zwolnienie resetu (wysoki poziom)
-    delay(150);                                      // Odczekanie 150 ms, by wyświetlacz się ustabilizował
+    // Ustaw pin RESET jako wyjście
+    pinMode(TFT_RST, OUTPUT);
+
+    // Wykonaj sprzętowy reset ekranu
+    digitalWrite(TFT_RST, LOW);
+    delay(50);
+    digitalWrite(TFT_RST, HIGH);
+    delay(150);
   }
 
-  tft_command(0x01);                                // Komenda: Software reset
-  delay(150);                                       // Pauza po resecie
+  // Programowy reset kontrolera
+  tft_command(0x01);
+  delay(120);
 
-  tft_command(0x3A);                                // Komenda: ustaw format koloru pikseli
-  tft_data(0x66);                                   // 0x66 = 18-bit kolor (RGB666)
-  delay(10);                                        // Krótka pauza
+  // Ustawienia gamma dodatnie (krzywa gamma dla jasnych tonów)
+  tft_command(0xE0);
+  tft_data(0x00); tft_data(0x03); tft_data(0x09); tft_data(0x08);
+  tft_data(0x16); tft_data(0x0A); tft_data(0x3F); tft_data(0x78);
+  tft_data(0x4C); tft_data(0x09); tft_data(0x0A); tft_data(0x08);
+  tft_data(0x16); tft_data(0x1A); tft_data(0x0F);
 
-  tft_command(0x36);                                // Komenda: Memory Data Access Control (rotacja/mirorowanie)
-  tft_data(0xE8);                                   // Ustawienia orientacji/pakietu pamięci
+  // Ustawienia gamma ujemne (krzywa gamma dla ciemnych tonów)
+  tft_command(0xE1);
+  tft_data(0x00); tft_data(0x16); tft_data(0x19); tft_data(0x03);
+  tft_data(0x0F); tft_data(0x05); tft_data(0x32); tft_data(0x45);
+  tft_data(0x46); tft_data(0x04); tft_data(0x0E); tft_data(0x0D);
+  tft_data(0x35); tft_data(0x37); tft_data(0x0F);
 
-  tft_command(0x11);                                // Komenda: Sleep Out (wybudzenie z trybu uśpienia)
-  delay(120);                                       // Czekanie aż wyświetlacz się obudzi
+  // Sterowanie zasilaniem – Power Control 1
+  tft_command(0xC0);
+  tft_data(0x17); tft_data(0x15);
 
-  tft_command(0x29);                                // Komenda: Display ON (włączenie wyświetlacza)
-  delay(20);                                        // Krótka pauza, by ekran ustabilizował się po włączeniu
+  // Sterowanie zasilaniem – Power Control 2
+  tft_command(0xC1);
+  tft_data(0x41);
+
+  // Sterowanie VCOM (napięcia kontrastu)
+  tft_command(0xC5);
+  tft_data(0x00); tft_data(0x12); tft_data(0x80);
+
+  // Kierunek i orientacja obrazu (MADCTL)
+  tft_command(0x36);
+  tft_data(0xE8);   // orientacja ekranu (rotacja, odbicie)
+
+  // Format piksela – ustaw RGB666 (18 bitów na piksel)
+  tft_command(0x3A);
+  tft_data(0x66);
+
+  // Tryb interfejsu
+  tft_command(0xB0);
+  tft_data(0x00);
+
+  // Kontrola odświeżania (Frame Rate Control)
+  tft_command(0xB1);
+  tft_data(0xA0);   // ok. 60Hz
+
+  // Kontrola inwersji wyświetlania
+  tft_command(0xB4);
+  tft_data(0x02);   // inwersja 2-punktowa
+
+  // Kontrola funkcji wyświetlania (timingi, linie skanowania)
+  tft_command(0xB6);
+  tft_data(0x02); tft_data(0x02); tft_data(0x3B);
+
+  // Tryb wejściowy
+  tft_command(0xB7);
+  tft_data(0xC6);
+
+  // Regulacja (Adjust Control 3) – parametry wewnętrzne
+  tft_command(0xF7);
+  tft_data(0xA9); tft_data(0x51); tft_data(0x2C); tft_data(0x82);
+
+  // Wyjście ze stanu uśpienia
+  tft_command(0x11);
+  delay(120);
+
+  // Normalny tryb wyświetlania
+  tft_command(0x13);
+
+  // Włączenie wyświetlacza
+  tft_command(0x29);
+  delay(100);
 }
 
 // Wypełnienie całego ekranu kolorem RGB
@@ -659,8 +713,7 @@ void tft_fillScreen(uint8_t r, uint8_t g, uint8_t b)
  * @param g  składowa koloru (zielony, 0–255)
  * @param b  składowa koloru (niebieski, 0–255)
  */
-void tft_fillRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
-                  uint8_t r, uint8_t g, uint8_t b)
+void tft_fillRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t r, uint8_t g, uint8_t b)
 {
   // Ustaw obszar do rysowania (tzw. address window) – wszystkie dane SPI
   // wysłane w tym trybie zostaną wpisane wprost do prostokąta [x..x+w-1, y..y+h-1].
@@ -713,6 +766,7 @@ void drawCharFont(const GFXfont *font, int16_t x, int16_t y, char c, uint8_t r, 
 
   // Pobierz informacje o znaku (szerokość, wysokość, offsety, bitmapOffset)
   GFXglyph *glyph = &font->glyph[c - font->first];
+
   // Wskaźnik do danych bitmapy znaku
   const uint8_t *bitmap = font->bitmap + glyph->bitmapOffset;
 
@@ -766,24 +820,30 @@ void drawCharFont(const GFXfont *font, int16_t x, int16_t y, char c, uint8_t r, 
   }
 }
 
-
 // Rysowanie napisu dla dowolnej czcionki
 void drawStringFont(const GFXfont* font, int16_t x, int16_t y, const char* str, uint8_t r, uint8_t g, uint8_t b)
 {
-  int16_t cursorX = x;
+  int16_t cursorX = x;  // Początkowa pozycja kursora w osi X
 
-  while (*str)
+  while (*str)  // Pętla przechodzi po wszystkich znakach w napisie
   {
-    uint8_t c = *str++;
-    if (c < font->first || c > font->last)
-      continue;  // Pomijaj znaki spoza zakresu czcionki
+    uint8_t c = *str++;  // Pobierz aktualny znak i przesuwaj wskaźnik na następny
 
+    if (c < font->first || c > font->last)
+      continue;  // Pomijaj znaki, których czcionka nie obsługuje (spoza zakresu)
+
+    // Pobierz dane glifu (kształtu znaku) z czcionki
     GFXglyph *glyph = &font->glyph[c - font->first];
-    drawCharFont(font, cursorX, y, c, r, g, b); // tu już nie dodajemy yOffset
+
+    // Narysuj pojedynczy znak w zadanej pozycji i kolorze
+    // drawCharFont rysuje znak bez dodatkowego przesunięcia yOffset
+    drawCharFont(font, cursorX, y, c, r, g, b);
+
+    // Przesuń kursor w prawo o szerokość znaku (xAdvance),
+    // aby kolejny znak pojawił się obok
     cursorX += glyph->xAdvance;
   }
 }
-
 
 // Funkcja do pobierania danych z API z serwera pogody openweathermap.org
 void getWeatherData()
@@ -791,8 +851,8 @@ void getWeatherData()
   weatherServerConnection = false;
   HTTPClient http;  // Utworzenie obiektu HTTPClient
   
-  // Poniżej zdefiniuj swój unikalny URL zawierający dane lokalizacji wraz z kluczem API otrzymany po resetracji w serwisie openweathermap.org, poniższy link nie zawiera klucza API, więc nie zadziała.
-  //String url = "http://api.openweathermap.org/data/2.5/weather?q=Piła,pl&appid=your_own_API_key";
+  // Poniżej zdefiniuj swój unikalny URL zawierający dane lokalizacji wraz z kluczem API otrzymany po resetracji w serwisie openweathermap.org
+  // String url = "http://api.openweathermap.org/data/2.5/weather?q=Piła,pl&appid=your_own_API_key";
   String url = "http://api.openweathermap.org/data/2.5/weather?q=Piła,pl&appid=cbc705bd4e66cb3422111f1533a78355";
 
   http.begin(url);  // Inicjalizacja połączenia HTTP z podanym URL-em, otwieramy połączenie z serwerem.
@@ -813,10 +873,8 @@ void getWeatherData()
       Serial.println(error.f_str());  // Wydruk szczegółów błędu deserializacji
       return;  // Zakończenie funkcji w przypadku błędu
     }
-    if (timeDisplay == true)
-    {
-     updateWeather();  // Jeśli deserializacja zakończyła się sukcesem, wywołujemy funkcję `updateWeather`, aby zaktualizować wyświetlacz i serial terminal
-    }
+
+    updateWeather();  // Jeśli deserializacja zakończyła się sukcesem, wywołujemy funkcję `updateWeather`, aby zaktualizować wyświetlacz i serial terminal
   }
   else  // Jeśli połączenie z serwerem nie powiodło się
   {
@@ -888,7 +946,6 @@ void updateWeather()
   windGustStr = "W porywach " + String(windGust) + " m/s";
 }
 
-
 // Funkcja do przełączania między różnymi danymi pogodowymi na ekranie TFT
 void switchWeatherData()
 {
@@ -937,11 +994,9 @@ void switchWeatherData()
   }
 }
 
-
 // Funkcja do ustawienia głośności na żądaną wartość
 void volumeSet()
 {
-  timeDisplay = false;  // Wyłączanie wyświetlania czasu
   displayActive = true;  // Ustawienie flagi aktywności wyświetlacza
   displayStartTime = millis();  // Zapisanie czasu rozpoczęcia wyświetlania
   
@@ -1191,7 +1246,6 @@ String convertTimestampToDate(unsigned long timestamp)
   return date;  // Zwraca sformatowaną datę jako String
 }
 
-
 // --- Funkcja odświeżania zegara w prawym dolnym rogu ---
 void updateTimer()
 {
@@ -1210,12 +1264,11 @@ void updateTimer()
 
   // --- Wyczyść tylko obszar zegara ---
   // tft_fillRect(x, y, width, height, R, G, B)
-  tft_fillRect(280, 270, 210, 60, 0, 0, 0); // czarne tło pod zegar
-
+  tft_fillRect(245, 265, 240, 60, 0, 0, 0);
+  
   // --- Narysuj zegar ---
-  drawStringFont(&FreeSans24pt7b, 290 , 310 , timeString, 231, 211, 90);
+  drawStringFont(&DS_DIGII35pt7b, 245 , 310 , timeString, 231, 211, 90);
 }
-
 
 // Funkcja do pobierania i wyciągania danych kalendarzowych z HTML poniższego adresu URL
 void fetchAndDisplayCalendar()
@@ -1341,7 +1394,6 @@ void fetchAndDisplayCalendar()
       Serial.println("Przysłowia na dziś:");
       Serial.println(allProverbs);
 
-      timeDisplay = false;
       displayActive = true;
       displayStartTime = millis();
 
@@ -1374,49 +1426,56 @@ String normalizePolish(String s)
   return s;
 }
 
-// Wyświetlanie tekstu linia po linii, nie przecina słów
-void drawWrappedStringFont(const GFXfont* font, int16_t x, int16_t y, const char* str,
-                           uint8_t r, uint8_t g, uint8_t b,
-                           int16_t maxWidth, int16_t lineHeight) 
+// Wyświetlanie tekstu linia po linii, z zawijaniem, tak aby nie przecinał słów
+void drawWrappedStringFont(const GFXfont* font, int16_t x, int16_t y, const char* str, uint8_t r, uint8_t g, uint8_t b, int16_t maxWidth, int16_t lineHeight) 
 {
+  // Normalizacja tekstu – np. zamiana polskich znaków na odpowiedniki z czcionki
   String tekst = normalizePolish(String(str));
-  tekst.trim();
-  int16_t cursorY = y;
+  tekst.trim();  // Usuń spacje z początku i końca
 
+  int16_t cursorY = y;  // Pozycja pionowa dla pierwszej linii tekstu
+
+  // Pętla: dopóki zostało coś w tekście
   while (tekst.length() > 0) 
   {
-    String line = tekst;
+    String line = tekst;   // Na początku próbujemy całość jako jedną linię
     int cut = line.length();
 
-    // Dopasowanie linii do maxWidth
+    // --- Dopasowanie długości linii do maxWidth ---
     while (line.length() > 0) 
     {
-      int16_t w = 0;
+      int16_t w = 0;  // Szerokość linii w pikselach
+
+      // Obliczamy szerokość aktualnej linii znak po znaku
       for (int i = 0; i < line.length(); i++) 
       {
         char c = line[i];
         if (c < font->first || c > font->last)
-          continue;
+          continue;  // Pomijamy znaki spoza zakresu czcionki
+
         GFXglyph *glyph = &font->glyph[c - font->first];
-        w += glyph->xAdvance;
+        w += glyph->xAdvance;  // Dodaj szerokość znaku
       }
 
+      // Jeśli linia mieści się w maxWidth → wychodzimy z pętli
       if (w <= maxWidth)
         break;
 
-      // Skracamy po ostatniej spacji
+      // Jeśli linia za szeroka → obcinamy po ostatniej spacji
       int lastSpace = line.lastIndexOf(' ');
-      if (lastSpace < 0) break;
-      line = line.substring(0, lastSpace);
+      if (lastSpace < 0) break;  // brak spacji, więc przerywamy
+      line = line.substring(0, lastSpace);  // obcięcie do ostatniej spacji
     }
 
-    // Rysujemy linię
+    // --- Rysowanie dopasowanej linii na ekranie ---
     drawStringFont(font, x, cursorY, line.c_str(), r, g, b);
+
+    // Przejście do następnej linii
     cursorY += lineHeight;
 
-    // Usuwamy już narysowaną część tekstu
+    // Usuń już wyświetloną część z tekstu i przygotuj resztę
     tekst = tekst.substring(line.length());
-    tekst.trim();
+    tekst.trim();  // Usuń nadmiarowe spacje
   }
 }
 
@@ -1488,8 +1547,6 @@ void SDinit()
     Serial.println("Plik bank_nr.txt już istnieje.");
   }
 }
-
-
 
 // Funkcja do pobierania listy stacji radiowych z serwera i zapisania ich w wybranym banku na karcie SD
 void fetchStationsFromServer()
@@ -1651,7 +1708,6 @@ void fetchStationsFromServer()
   // Zakończ połączenie HTTP
   http.end();
 }
-
 
 // Funkcja przetwarza i zapisuje stację do pamięci EEPROM
 void sanitizeAndSaveStation(const char* station)
@@ -1867,8 +1923,6 @@ void changeStation()
   }
 }
 
-
-
 void saveStationOnSD()
 {
   // Sprawdź, czy plik station_nr.txt istnieje
@@ -2032,8 +2086,35 @@ void audio_info(const char *info)
     mp3 = false;
   }
 
-}
+  int unknowContent = String(info).indexOf("unknown content found at:");
+  if (unknowContent != -1)
+  {
+    int startX = 0;        // lewa krawędź
+    int startY = 0;        // początek pierwszej linii
+    int width  = 480;      // pełna szerokość ekranu
+    int height = 30 * 5;   // 5 lini po 30 px = 150 px
 
+    tft_fillRect(startX, startY, width, height, 0, 0, 0); // czarne tło
+
+    // --- Informacje o stacji ---
+    drawWrappedStringFont(&FreeSans12pt7b, 0, 75, "Nieznana zawartosc linku", COLOR_PINK, 480, 30);
+  }
+
+  int connectTo = String(info).indexOf("connect to:");
+  if (connectTo != -1)
+  {
+    int startX = 0;        // lewa krawędź
+    int startY = 0;       // początek pierwszej linii
+    int width  = 480;      // pełna szerokość ekranu
+    int height = 30 * 5;   // 5 lini po 30 px = 150 px
+
+    tft_fillRect(startX, startY, width, height, 0, 0, 0); // czarne tło
+
+    // --- Informacje o stacji ---
+    drawWrappedStringFont(&FreeSans12pt7b, 0, 75, "Nawiazywanie polaczenia, czekaj.....", COLOR_PINK, 480, 30);
+  }
+
+}
 
 
 void audio_id3data(const char *info)
@@ -2094,6 +2175,7 @@ void audio_id3data(const char *info)
     Serial.println("Znalazłem tytuł: " + titleString);
     id3tag = true;
   }
+
 }
 
 void audio_bitrate(const char *info)
@@ -2118,9 +2200,6 @@ void audio_showstation(const char *info)
 }
 
 
-unsigned long stationInfoTimer = 0;
-bool stationInfoPending = false;
-
 void audio_showstreamtitle(const char *info)
 {
     Serial.print("streamtitle ");
@@ -2134,21 +2213,30 @@ void audio_showstreamtitle(const char *info)
     stationInfoPending = true;
 }
 
+// Funkcja obsługuje wyświetlanie informacji o aktualnej stacji
 void handleStationInfoUpdate()
 {
-  if (stationInfoPending && millis() >= stationInfoTimer)
+  // Sprawdzenie warunków:
+  // - czy oczekuje informacja o stacji (flaga stationInfoPending)
+  // - czy upłynął czas zapisany w stationInfoTimer (odliczanie w millis)
+  // - czy ekran nie jest obecnie zajęty innym wyświetlaniem (displayActive == false)
+  if (stationInfoPending && millis() >= stationInfoTimer && !displayActive)
   {
-    stationInfoPending = false; // wyłącz flagę
+    stationInfoPending = false; // wyłącz flagę – informacja zostanie już wyświetlona
 
-    int startX = 0;        // lewa krawędź
-    int startY = 40;       // początek pierwszej linii
-    int width  = 480;      // pełna szerokość ekranu
-    int height = 30 * 4;   // 4 linie po 30 px = 120 px
+    // Ustawienia obszaru wyświetlania informacji
+    int startX = 0;        // początek w osi X (lewa krawędź ekranu)
+    int startY = 45;       // początek w osi Y (od 45 px od góry ekranu)
+    int width  = 480;      // szerokość obszaru (cały ekran TFT)
+    int height = 30 * 4;   // wysokość obszaru (4 linie tekstu po 30 px = 120 px)
 
-    tft_fillRect(startX, startY, width, height, 0, 0, 0); // czarne tło
+    // Wyczyść wskazany obszar
+    tft_fillRect(startX, startY, width, height, 0, 0, 0);
 
-    // --- Informacje o stacji ---
-    drawWrappedStringFont(&FreeSans12pt7b, 0, 70, stationInfo.c_str(), COLOR_LIME, 480, 30);
+    // --- Wyświetlanie tekstu z informacją o stacji ---
+    // użycie funkcji zawijającej linie, czcionka FreeSans12pt7b,
+    // kolor zielony (COLOR_LIME), max szerokość = 480 px, wysokość linii = 30 px
+    drawWrappedStringFont(&FreeSans12pt7b, 0, 75, stationInfo.c_str(), COLOR_LIME, 480, 30);
   }
 }
 
@@ -2173,11 +2261,62 @@ void audio_eof_speech(const char *info)
   Serial.println(info);
 }
 
+// Funkcja do wyświetlania listy stacji radiowych na ILI9488
+void displayStations()
+{
+  // Wyczyść obszar ekranu przeznaczony na listę stacji (pierwsze 5 linii = 150 px)
+  tft_fillRect(0, 0, 480, 200, 0, 0, 0);
+
+  vTaskDelay(5);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
+
+  // Nagłówek
+  String header = "STACJE RADIOWE   " + String(station_nr) + " / " + String(stationsCount);
+  drawWrappedStringFont(&FreeSans12pt7b, 80, 20, header.c_str(), COLOR_WHITE, 480, 30);
+
+  int displayRow = 1;
+
+  // Iteruj po stacjach (maks 5 linii na ekranie)
+  for (int i = firstVisibleLine; i < min(firstVisibleLine + maxVisibleLines, stationsCount); i++)
+  {
+    char station[STATION_NAME_LENGTH + 1];
+    memset(station, 0, sizeof(station));
+
+    // Odczytaj długość nazwy stacji
+    int length = EEPROM.read(i * (STATION_NAME_LENGTH + 1));
+
+    // Odczytaj znaki nazwy stacji
+    for (int j = 0; j < min(length, STATION_NAME_LENGTH); j++)
+    {
+      station[j] = EEPROM.read(i * (STATION_NAME_LENGTH + 1) + 1 + j);
+    }
+
+
+        // --- Przytnij do 25 znaków ---
+    String stationNames = String(station);
+    if (stationNames.length() > 25) {
+      stationNames = stationNames.substring(0, 25);
+    }
+
+    if (i == currentSelection)
+    {
+      // Zaznaczona stacja → turkusowy tekst
+      drawWrappedStringFont(&FreeSans12pt7b, 0, displayRow * 30 + 20,
+                            stationNames.c_str(), COLOR_TURQUOISE, 480, 30);
+    }
+    else
+    {
+      // Normalna stacja → zielony tekst
+      drawWrappedStringFont(&FreeSans12pt7b, 0, displayRow * 30 + 20,
+                            stationNames.c_str(), COLOR_LIME, 480, 30);
+    }
+
+    displayRow++;
+  }
+}
 
 // Obsługa wyświetlacza dla odtwarzanego strumienia radia internetowego
 void displayRadio()
 {
-
   tft_fillScreen(0,0,0); // Czyszczenie ekranu
 
   // --- Podział nazwy stacji ---
@@ -2193,40 +2332,45 @@ void displayRadio()
 
   if (pos != -1)
   {
-      extraInfo = mainName.substring(pos);
-      mainName  = mainName.substring(0, pos);
-      mainName.trim();
-      extraInfo.trim();
+    extraInfo = mainName.substring(pos);
+    mainName  = mainName.substring(0, pos);
+    mainName.trim();
+    extraInfo.trim();
   }
 
   // --- Nazwa stacji ---
   drawStringFont(&FreeSansBold18pt7b, 0, 35, mainName.c_str(), COLOR_TURQUOISE);
 
   // --- Informacje o stacji ---
-  drawWrappedStringFont(&FreeSans12pt7b, 0, 70, stationInfo.c_str(), COLOR_LIME, 480, 30);
+  drawWrappedStringFont(&FreeSans12pt7b, 0, 75, stationInfo.c_str(), COLOR_LIME, 480, 30);
 
   // --- Numer banku i numer stacji ---
   if (extraInfo.length() > 0)
   {
-      drawStringFont(&FreeMonoBold12pt7b, 0, 310, extraInfo.c_str(), COLOR_ORANGE);
+    drawStringFont(&FreeMonoBold12pt7b, 0, 310, extraInfo.c_str(), COLOR_ORANGE);
   }
 
   // Utworzenie napisu z bitrate, sample rate i bits per sample
   String audioInfoDisplay = "";
 
+  // trimowanie wartości przed użyciem
+  bitrateString.trim();
+  sampleRateString.trim();
+  bitsPerSampleString.trim();
+
   if (bitrateString.length() > 0)
   {
-      audioInfoDisplay += bitrateString + " b/s   ";
+    audioInfoDisplay += bitrateString + " b/s   ";
   }
 
   if (sampleRateString.length() > 0)
   {
-      audioInfoDisplay += sampleRateString + " Hz    ";
+    audioInfoDisplay += sampleRateString + " Hz    ";
   }
 
   if (bitsPerSampleString.length() > 0)
   {
-      audioInfoDisplay += bitsPerSampleString + " bit";
+    audioInfoDisplay += bitsPerSampleString + " bit";
   }
 
   // Wyświetlenie parametrów audio
@@ -2244,6 +2388,74 @@ void displayRadio()
 
 }
 
+// Funkcja do przewijania w górę
+void scrollUp()
+{
+  if (currentSelection > 0)
+  {
+    currentSelection--;
+    if (currentSelection < firstVisibleLine)
+    {
+      firstVisibleLine = currentSelection;
+    }
+  }
+  else
+  {
+    // Jeśli osiągnięto wartość 0, przejdź do najwyższej wartości
+    currentSelection = maxSelection(); 
+    firstVisibleLine = currentSelection - maxVisibleLines + 1; // Ustaw pierwszą widoczną linię na najwyższą
+  }
+  
+  Serial.print("Scroll Up: CurrentSelection = ");
+  Serial.println(currentSelection);
+  Serial.print("Scroll Down: firstVisibleLine = ");
+  Serial.println(firstVisibleLine);
+}
+
+// Funkcja do przewijania w dół
+void scrollDown()
+{
+  if (currentSelection < maxSelection())
+  {
+    currentSelection++;
+    if (currentSelection >= firstVisibleLine + maxVisibleLines)
+    {
+      firstVisibleLine++;
+    }
+  }
+  else
+  {
+    // Jeśli osiągnięto maksymalną wartość, przejdź do najmniejszej (0)
+    currentSelection = 0;
+    firstVisibleLine = 0; // Przywróć do pierwszej widocznej linii
+  }
+
+  Serial.print("Scroll Down: CurrentSelection = ");
+  Serial.println(currentSelection);
+  Serial.print("Scroll Down: firstVisibleLine = ");
+  Serial.println(firstVisibleLine);
+}
+
+// Funkcja zwracająca maksymalny możliwy wybór w zależności od opcji
+int maxSelection()
+{
+  if (currentOption == INTERNET_RADIO)
+  {
+    return stationsCount - 1;  // Zwraca maksymalny wybór stacji radiowych
+  }
+  else if (currentOption == PLAY_FILES)
+  {
+    if (folderSelection == true)
+    {
+      return folderCount - 1;  // Zwraca maksymalny wybór folderów
+    }
+    else if (fileSelection == true)
+    {
+      return filesCount - 1;  // Zwraca maksymalny wybór plików w bieżącym folderze
+    }
+  }
+  return 0; // Zwraca 0, jeśli żaden warunek nie jest spełniony
+}
 
 
 // Funkcja do cyklicznego przełączania kartki z kalendarza 
@@ -2392,6 +2604,9 @@ void setup()
 
   audioBuffer.changeMaxBlockSize(16384);  // Wywołanie metody na obiekcie audioBuffer, is default 1600 for mp3 and aac, set 16384 for FLAC 
 
+  // Inicjalizuj pamięć EEPROM z odpowiednim rozmiarem
+  EEPROM.begin(MAX_STATIONS * STATION_NAME_LENGTH); // 100 * 42
+
   // Inicjalizacja WiFiManagera
   WiFiManager wifiManager;
 
@@ -2412,7 +2627,7 @@ void setup()
     changeStation();
     getWeatherData();
     fetchAndDisplayCalendar();
-
+    tft_fillScreen(0,0,0);
   }
   else
   {
@@ -2430,7 +2645,7 @@ void loop()
   audio.loop();               // Wykonuje główną pętlę dla obiektu audio (np. odtwarzanie dźwięku, obsługa audio)
   processIRCode();            // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
   volumeSetFromRemote();      // Obsługa regulacji głośności z pilota zdalnego sterowania
-  vTaskDelay(2);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
+  vTaskDelay(1);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
   showCalendarCarousel();     // Wywołanie przełączania kalendarza w linii
   handleStationInfoUpdate();  // Odświeżanie danych ze stacji radiowej
 
@@ -2464,12 +2679,17 @@ void loop()
   {
     IRokButton = false;
     displayActive = false;
-    tft_fillRect(0, 280, 200, 40, COLOR_BLACK);
-    drawStringFont(&FreeMonoBold12pt7b, 0, 310, "Pobieram z Github", COLOR_RED);
-    currentSelection = 0;
-    firstVisibleLine = 0;
-    station_nr = 1;
-    fetchStationsFromServer();
+    if (bankSwitch == true)
+    {
+      bankSwitch = false;
+      tft_fillRect(0, 280, 240, 40, COLOR_BLACK);
+      drawStringFont(&FreeMonoBold12pt7b, 0, 310, "Pobieram stacje", COLOR_RED);
+      currentSelection = 0;
+      firstVisibleLine = 0;
+      station_nr = 1;
+      audio.stopSong();
+      fetchStationsFromServer();
+    }
     changeStation();
   }
 
@@ -2477,7 +2697,7 @@ void loop()
   if (IRbankUp == true)
   {
     IRbankUp = false;
-    timeDisplay = false;
+    bankSwitch = true;
     displayActive = true;
     displayStartTime = millis();
 
@@ -2496,7 +2716,7 @@ void loop()
   if (IRbankDown == true)
   {
     IRbankDown = false;
-    timeDisplay = false;
+    bankSwitch = true;
     displayActive = true;
     displayStartTime = millis();
 
@@ -2511,17 +2731,64 @@ void loop()
     drawStringFont(&FreeMonoBold12pt7b, 0, 310, bankNumber.c_str(), COLOR_RED);
   }
 
+    if (IRdownArrow == true)  // Dolny przycisk kierunkowy w pilocie
+  {
+    IRdownArrow = false;
+    stationsList = true;
+    bank_nr = previous_bank_nr;
+    displayActive = true;
+    displayStartTime = millis();
+    station_nr = currentSelection + 1;
+    station_nr++;
+    if (station_nr > stationsCount) 
+    {
+      station_nr = 1;
+    }
+    Serial.print("Numer stacji do do przodu: ");
+    Serial.println(station_nr);
+    scrollDown(); 
+    displayStations();
+  }
+
+  if (IRupArrow == true)  // Górny przycisk kierunkowy w pilocie
+  {
+    IRupArrow = false;
+    stationsList = true;
+    bank_nr = previous_bank_nr;
+    displayActive = true;
+    displayStartTime = millis();
+    station_nr = currentSelection + 1;
+    station_nr--;
+    if (station_nr < 1) 
+    {
+      station_nr = stationsCount;
+    }
+    Serial.print("Numer stacji do tyłu: ");
+    Serial.println(station_nr);
+    scrollUp(); 
+    displayStations();
+  }
+
   // Powrót do wyświetlania ostatniego numeru banku w dolnej linii po bezczynności podczas wybierania numeru banku bez zatwierdzenia
   if (displayActive && (millis() - displayStartTime > DISPLAY_TIMEOUT)) 
   {
     displayActive = false;
-    station_nr = previous_station_nr; 
-    bank_nr = previous_bank_nr;
 
-    String bankNumber = "Bank " + String(bank_nr);
+    if (stationsList == true)
+    {
+      stationsList = false;
+      displayRadio();
+    }
+    else
+    {
+      station_nr = previous_station_nr; 
+      bank_nr = previous_bank_nr;
+      bankSwitch = false;
+      String bankNumber = "Bank " + String(bank_nr);
 
-    tft_fillRect(0, 280, 100, 40, COLOR_BLACK);
-    drawStringFont(&FreeMonoBold12pt7b, 0, 310, bankNumber.c_str(), COLOR_ORANGE);
+      tft_fillRect(0, 280, 100, 40, COLOR_BLACK);
+      drawStringFont(&FreeMonoBold12pt7b, 0, 310, bankNumber.c_str(), COLOR_ORANGE);
+    }
   }
 
 }
