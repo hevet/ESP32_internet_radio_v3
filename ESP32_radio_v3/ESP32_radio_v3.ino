@@ -2276,8 +2276,6 @@ void displayStations()
   // Wyczyść obszar ekranu przeznaczony na listę stacji (pierwsze 5 linii = 150 px)
   tft_fillRect(0, 0, 480, 200, 0, 0, 0);
 
-  vTaskDelay(5);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
-
   // Nagłówek
   String header = "STACJE RADIOWE   " + String(station_nr) + " / " + String(stationsCount);
   drawWrappedStringFont(&FreeSans12pt7b, 80, 20, header.c_str(), COLOR_WHITE, 480, 30);
