@@ -2237,7 +2237,7 @@ void handleStationInfoUpdate()
     int startX = 0;        // początek w osi X (lewa krawędź ekranu)
     int startY = 45;       // początek w osi Y (od 45 px od góry ekranu)
     int width  = 480;      // szerokość obszaru (cały ekran TFT)
-    int height = 30 * 5;   // wysokość obszaru (5 linii tekstu po 30 px = 150 px)
+    int height = 30 * 4;   // wysokość obszaru (4 liniie tekstu po 30 px = 120 px)
 
     // Wyczyść wskazany obszar
     tft_fillRect(startX, startY, width, height, 0, 0, 0);
@@ -2647,7 +2647,7 @@ void loop()
   audio.loop();               // Wykonuje główną pętlę dla obiektu audio (np. odtwarzanie dźwięku, obsługa audio)
   processIRCode();            // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
   volumeSetFromRemote();      // Obsługa regulacji głośności z pilota zdalnego sterowania
-  //vTaskDelay(1);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
+  vTaskDelay(1);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
   if (displayActive == false)
   {
     showCalendarCarousel();     // Wywołanie przełączania kalendarza w linii
