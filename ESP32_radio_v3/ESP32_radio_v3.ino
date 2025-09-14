@@ -974,10 +974,12 @@ void switchWeatherData()
       line1 = humidityStr;       // np. "Wilgotność: 60 %"
       line2 = pressureStr;       // np. "Ciśnienie: 1015 hPa"
     }
-
-    // Rysowanie danych pogodowych nad wierszem audioInfo
-    drawStringFont(&FreeSans12pt7b, 0, 220, line1.c_str(), COLOR_PINK);
-    drawStringFont(&FreeSans12pt7b, 240, 220, line2.c_str(), COLOR_PINK);
+    if (displayActive == false)
+    {
+      // Rysowanie danych pogodowych nad wierszem audioInfo
+      drawStringFont(&FreeSans12pt7b, 0, 220, line1.c_str(), COLOR_PINK);
+      drawStringFont(&FreeSans12pt7b, 240, 220, line2.c_str(), COLOR_PINK);
+    }
   }
   else
   {
@@ -1268,6 +1270,13 @@ void updateTimer()
   
   // --- Narysuj zegar ---
   drawStringFont(&DS_DIGII35pt7b, 245 , 310 , timeString, 231, 211, 90);
+
+  if (!audio.isRunning())
+  {
+    tft_fillRect(0, 225, 480, 30, COLOR_BLACK);
+    drawStringFont(&FreeMonoBold12pt7b, 5, 250, "---- Brak strumienia audio ! ----", COLOR_RED);
+  }
+
 }
 
 // Funkcja do pobierania i wyciągania danych kalendarzowych z HTML poniższego adresu URL
@@ -2016,7 +2025,7 @@ void audio_info(const char *info)
     {
       //displayPlayer();
     }
-    if (currentOption == INTERNET_RADIO)
+    if ((currentOption == INTERNET_RADIO) && (audio.isRunning()) )
     {
       displayRadio();
     }
@@ -2646,8 +2655,11 @@ void loop()
   processIRCode();            // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
   volumeSetFromRemote();      // Obsługa regulacji głośności z pilota zdalnego sterowania
   vTaskDelay(1);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
-  showCalendarCarousel();     // Wywołanie przełączania kalendarza w linii
-  handleStationInfoUpdate();  // Odświeżanie danych ze stacji radiowej
+  if (displayActive == false)
+  {
+    showCalendarCarousel();     // Wywołanie przełączania kalendarza w linii
+    handleStationInfoUpdate();  // Odświeżanie danych ze stacji radiowej
+  }
 
   if (IRrightArrow == true)  // Prawy przycisk kierunkowy w pilocie
   {
