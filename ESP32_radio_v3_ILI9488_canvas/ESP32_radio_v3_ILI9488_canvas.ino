@@ -2408,26 +2408,43 @@ void my_audio_info(Audio::msg_t m)
       }
 
       // --- Nieznana zawartość ---
-      /*int unknowContent = msg.indexOf("unknown content found at:");
+      int unknowContent = msg.indexOf("unknown content found at:");
       if (unknowContent != -1)
       {
-        int startX = 0, startY = 0, width = 480, height = 30 * 5;
-        tft_fillRect(startX, startY, width, height, 0, 0, 0); // czarne tło
-        //drawWrappedStringFont(&FreeSans12pt7b, 0, 75, "Nieznana zawartosc linku", COLOR_PINK, 480, 30);
+        // Wyczyść obszar w canvas
+        canvas.fillRect(0, 30, 480, 150, COLOR_BLACK);
+
+        // Wyświetl komunikat informacyjny w canvas
+        canvas.setFont(&FreeSans12pt7b);
+        canvas.setTextColor(COLOR_PINK);
+        canvas.setCursor(0, 70);
+        canvas.print("Nieznana zawartosc linku");
+
+        // Wyślij canvas na ekran
+        tft_pushCanvas(canvas);
       }
 
       // --- Łączenie ze stacją ---
       int connectTo = msg.indexOf("connect to:");
       if (connectTo != -1)
       {
-        int startX = 0, startY = 0, width = 480, height = 30 * 5;
-        tft_fillRect(startX, startY, width, height, 0, 0, 0); // czarne tło
-        //drawWrappedStringFont(&FreeSans12pt7b, 0, 75, "Nawiazywanie polaczenia, czekaj.....", COLOR_PINK, 480, 30);
+        // Wyczyść obszar w canvas
+        canvas.fillRect(0, 30, 480, 150, COLOR_BLACK);
+
+        // Wyświetl komunikat informacyjny w canvas
+        canvas.setFont(&FreeSans12pt7b);
+        canvas.setTextColor(COLOR_PINK);
+        canvas.setCursor(0, 70);
+        canvas.print("Nawiazywanie polaczenia, czekaj...");
+
+        // Wyślij canvas na ekran
+        tft_pushCanvas(canvas);
       }
+
 
       // --- Debug ---
       Serial.printf("info: ....... %s\n", m.msg);
-      */
+      
     }
     break;
 
@@ -2549,10 +2566,10 @@ void setup()
     timer2.attach(300, getWeatherData);   // Ustaw timer, aby wywoływał funkcję getWeatherData co 5 minut
     timer3.attach(10, switchWeatherData);   // Ustaw timer, aby wywoływał funkcję switchWeatherData co 10 sekund
     fetchStationsFromServer();
+    canvas.fillScreen(COLOR_BLACK);
     changeStation();
     getWeatherData();
     fetchAndDisplayCalendar();
-    canvas.fillScreen(COLOR_BLACK);
   }
   else
   {
