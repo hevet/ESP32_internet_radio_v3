@@ -211,6 +211,12 @@ Ticker timer1;                            // Timer do updateTimer co 1s
 Ticker timer2;                            // Timer do getWeatherData co 60s
 Ticker timer3;                            // Timer do przełączania wyświetlania danych pogodoych w ostatniej linii co 10s
 
+volatile bool updateClockFlag = false;  // flaga do odświeżania zegara
+
+void IRAM_ATTR timerCallback() {
+    updateClockFlag = true;  // tylko ustaw flagę w przerwaniu
+}
+
 WiFiClient client;                        // Obiekt do obsługi połączenia WiFi dla klienta HTTP
 
 SPIClass spi = SPIClass(HSPI); // Użycie VSPI dla ekranu
@@ -1199,46 +1205,6 @@ String convertTimestampToDate(unsigned long timestamp)
   return date;  // Zwraca sformatowaną datę jako String
 }
 
-// --- Funkcja odświeżania zegara w prawym dolnym rogu ---
-void updateTimer()
-{
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo))
-  {
-    Serial.println("Nie udało się uzyskać czasu");
-    return;
-  }
-
-  // Przygotuj string czasu
-  char timeString[9];
-  snprintf(timeString, sizeof(timeString), "%2d:%02d:%02d",
-           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-
-
-  // --- Wyczyść tylko obszar zegara ---
-  canvas.fillRect(245, 265, 240, 60, COLOR_BLACK);
-
-  // --- Narysuj zegar ---
-  canvas.setFont(&DS_DIGII35pt7b);
-  canvas.setTextColor(COLOR_GOLD);  // złoty
-  canvas.setCursor(245, 310);
-  canvas.print(timeString);
-
-  // --- Brak strumienia audio ---
-  if (!audio.isRunning()) {
-      // Wyczyść obszar błędu
-      canvas.fillRect(0, 225, 480, 30, COLOR_BLACK);
-
-      // Napis błędu
-      canvas.setFont(&FreeMonoBold12pt7b);
-      canvas.setTextColor(COLOR_RED);  // czerwony
-      canvas.setCursor(5, 250);
-      canvas.print("---- Brak strumienia audio ! ----");
-  }
-
-  tft_pushCanvas(canvas);
-
-}
 
 // Funkcja do pobierania i wyciągania danych kalendarzowych z HTML poniższego adresu URL
 void fetchAndDisplayCalendar()
@@ -2457,6 +2423,39 @@ void my_audio_info(Audio::msg_t m)
 }
 
 
+// Funkcja rysująca zegar
+void drawClock()
+{
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo))
+    return;
+
+  char timeString[9];
+  snprintf(timeString, sizeof(timeString), "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
+  // Wyczyść obszar zegara
+  canvas.fillRect(245, 265, 240, 60, COLOR_BLACK);
+
+  // Narysuj zegar
+  canvas.setFont(&DS_DIGII35pt7b);
+  canvas.setTextColor(COLOR_GOLD);
+  canvas.setCursor(245, 310);
+  canvas.print(timeString);
+
+  // Brak strumienia audio
+  if (!audio.isRunning())
+  {
+    canvas.fillRect(0, 225, 480, 30, COLOR_BLACK);
+    canvas.setFont(&FreeMonoBold12pt7b);
+    canvas.setTextColor(COLOR_RED);
+    canvas.setCursor(5, 250);
+    canvas.print("---- Brak strumienia audio ! ----");
+  }
+
+  tft_pushCanvas(canvas);
+}
+
+
 /*-------------------------------------------------------GLÓWNY SETUP PROGRAMU----------------------------------------------------------*/
 
 
@@ -2541,7 +2540,7 @@ void setup()
     tft_pushCanvas(canvas);
 
     configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", ntpServer); // Konfiguracja strefy czasowej dla Polski z czasem letnim
-    timer1.attach(1, updateTimer);   // Ustaw timer, aby wywoływał funkcję updateTimer co sekundę
+    timer1.attach(1, timerCallback);   // Ustaw timer, aby wywoływał funkcję updateTimer co sekundę
     timer2.attach(300, getWeatherData);   // Ustaw timer, aby wywoływał funkcję getWeatherData co 5 minut
     //timer3.attach(10, switchWeatherData);   // Ustaw timer, aby wywoływał funkcję switchWeatherData co 10 sekund
     fetchStationsFromServer();
@@ -2566,11 +2565,18 @@ void loop()
   audio.loop();               // Wykonuje główną pętlę dla obiektu audio (np. odtwarzanie dźwięku, obsługa audio)
   processIRCode();            // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
   volumeSetFromRemote();      // Obsługa regulacji głośności z pilota zdalnego sterowania
-  vTaskDelay(2);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
+  vTaskDelay(1);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
+
   if (displayActive == false)
   {
     showCalendarCarousel();
     switchWeatherData();
+  }
+
+  if (updateClockFlag)
+  {
+    updateClockFlag = false;
+    drawClock();
   }
 
   if (IRrightArrow == true)  // Prawy przycisk kierunkowy w pilocie
