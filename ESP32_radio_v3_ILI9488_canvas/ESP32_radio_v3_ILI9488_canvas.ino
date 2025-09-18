@@ -115,7 +115,9 @@ int volumeArray[100];             // Wartości głośności dla 100 stacji w ka�
 int cycle = 0;                    // Numer cyklu do danych pogodowych wyświetlanych w trzech rzutach co 10 sekund
 int maxVisibleLines = 6;          // Maksymalna liczba widocznych linii na ekranie OLED
 
-unsigned long lastSwitch = 0;       // Znacznik czasu (ms), kiedy ostatnio przełączono linię/wiadomość
+unsigned long lastSwitchWeather = 0;
+unsigned long lastSwitchCalendar = 0;
+
 int messageIndex = 0;               // Indeks aktualnie wyświetlanej wiadomości
 int namedayLineIndex = 0;           // Indeks aktualnie wyświetlanej linii imienin
 std::vector<String> namedayLines;   // Wektor z gotowymi liniami tekstu imienin
@@ -936,81 +938,7 @@ void updateWeather()
   windGustStr = "W porywach " + String(windGust) + " m/s";
 }
 
-// Funkcja do przełączania między różnymi danymi pogodowymi na ekranie TFT
-void switchWeatherData()
-{
-  // Czyszczenie obszaru wyświetlania danych pogodowych (nad audioInfoDisplay)
-  canvas.fillRect(0, 200, TFT_WIDTH, 30, COLOR_BLACK);
 
-  if (weatherServerConnection)
-  {
-    String line1, line2;
-
-    if (cycle == 0)
-    {
-      // Wyświetlamy temperaturę i odczuwalną temperaturę
-      line1 = tempStr;           // np. "Temperatura: 21.5 C"
-      line2 = feels_likeStr;     // np. "Odczuwalna: 22.0 C"
-    }
-    else if (cycle == 1)
-    {
-      // Wyświetlamy wiatr i porywy
-      line1 = windStr;           // np. "Wiatr: 3.5 m/s"
-      line2 = windGustStr;       // np. "W porywach: 5.2 m/s"
-    }
-    else if (cycle == 2)
-    {
-      // Wyświetlamy wilgotność i ciśnienie
-      line1 = humidityStr;       // np. "Wilgotność: 60 %"
-      line2 = pressureStr;       // np. "Ciśnienie: 1015 hPa"
-    }
-    if (displayActive == false)
-    {
-      // Rysowanie danych pogodowych nad wierszem audioInfo
-      canvas.fillRect(0, 200, TFT_WIDTH, 30, COLOR_BLACK); // wyczyść obszar napisów
-
-      // Ustaw czcionkę i kolor dla linii 1
-      canvas.setFont(&FreeSans12pt7b);
-      canvas.setTextColor(COLOR_PINK);
-      canvas.setCursor(0, 220);  // pozycja pierwszego napisu
-      canvas.print(line1);
-
-      // Ustaw czcionkę i kolor dla linii 2
-      canvas.setFont(&FreeSans12pt7b);
-      canvas.setTextColor(COLOR_PINK);
-      canvas.setCursor(240, 220);  // pozycja drugiego napisu
-      canvas.print(line2);
-
-      // Wyślij cały canvas na ekran
-      tft_pushCanvas(canvas);
-
-    }
-  }
-  else
-  {
-    // Brak połączenia z serwerem
-    String errorText = "--- Brak polaczenia z serwerem pogody ---";
-    // Wyczyść obszar błędu
-    canvas.fillRect(0, 200, TFT_WIDTH, 30, COLOR_BLACK); // prostokąt tła pod tekst
-
-    // Ustaw czcionkę i kolor dla napisu błędu
-    canvas.setFont(&FreeSans12pt7b);
-    canvas.setTextColor(COLOR_RED);
-    canvas.setCursor(0, 220);  // pozycja napisu
-    canvas.print(errorText);
-
-    // Wyślij canvas na ekran
-    tft_pushCanvas(canvas);
-
-  }
-
-  // Zmiana cyklu
-  cycle++;
-  if (cycle > 2)
-  {
-    cycle = 0;
-  }
-}
 
 // Funkcja do ustawienia głośności na żądaną wartość
 void volumeSet()
@@ -2227,42 +2155,101 @@ int maxSelection()
   return 0; // Zwraca 0, jeśli żaden warunek nie jest spełniony
 }
 
+// --- Funkcja do przełączania danych pogodowych ---
+void switchWeatherData()
+{
+  unsigned long now = millis();
+  unsigned long interval = 10000; // co 10 s
 
-// Funkcja do cyklicznego przełączania kartki z kalendarza
+  if (now - lastSwitchWeather > interval)
+  {
+    lastSwitchWeather = now;
+
+    // Czyszczenie obszaru pogodynki (np. Y=200–230)
+    canvas.fillRect(0, 200, TFT_WIDTH, 30, COLOR_BLACK);
+
+    if (weatherServerConnection)
+    {
+      String line1, line2;
+
+      if (cycle == 0) {
+        line1 = tempStr;       // np. "Temperatura: 21.5 C"
+        line2 = feels_likeStr; // np. "Odczuwalna: 22.0 C"
+      }
+      else if (cycle == 1) {
+        line1 = windStr;       // np. "Wiatr: 3.5 m/s"
+        line2 = windGustStr;   // np. "W porywach: 5.2 m/s"
+      }
+      else if (cycle == 2) {
+        line1 = humidityStr;   // np. "Wilgotność: 60 %"
+        line2 = pressureStr;   // np. "Ciśnienie: 1015 hPa"
+      }
+
+      if (displayActive == false)
+      {
+        // Rysowanie danych pogodowych WYŻEJ niż parametry audio
+        canvas.setFont(&FreeSans12pt7b);
+        canvas.setTextColor(COLOR_PINK);
+        canvas.setCursor(0, 220);   // linia 1 → Y=220
+        canvas.print(line1);
+
+        canvas.setCursor(240, 220); // linia 2 → obok
+        canvas.print(line2);
+
+        //tft_pushCanvas(canvas);
+      }
+    }
+    else
+    {
+      // Brak połączenia z serwerem
+      String errorText = "--- Brak polaczenia z serwerem pogody ---";
+      canvas.fillRect(0, 200, TFT_WIDTH, 30, COLOR_BLACK);
+
+      canvas.setFont(&FreeSans12pt7b);
+      canvas.setTextColor(COLOR_RED);
+      canvas.setCursor(0, 220);
+      canvas.print(errorText);
+
+     //tft_pushCanvas(canvas);
+    }
+
+    // Zmiana cyklu
+    cycle++;
+    if (cycle > 2) cycle = 0;
+  }
+}
+
+
+
+// --- Funkcja do przełączania karuzeli kalendarza ---
 void showCalendarCarousel()
 {
   unsigned long now = millis();
+  unsigned long interval = (messageIndex == 3) ? 5000 : 10000;
 
-  // --- czas odświeżania ---
-  unsigned long interval = (messageIndex == 3) ? 5000 : 10000; // imieniny co 5s, reszta co 10s
-
-  if (now - lastSwitch > interval)
+  if (now - lastSwitchCalendar > interval)
   {
-    lastSwitch = now;
+    lastSwitchCalendar = now;
 
-    // --- czyścimy linię pogodynki ---
+    // Czyścimy obszar kalendarza (160–200)
     canvas.fillRect(0, 160, TFT_WIDTH, 40, COLOR_BLACK);
 
     String msg;
 
-    if (messageIndex == 0)
-    {
+    if (messageIndex == 0) {
       msg = "Dzisiaj jest " + calendar + " r";
       messageIndex++;
     }
-    else if (messageIndex == 1)
-    {
+    else if (messageIndex == 1) {
       msg = "Wschod Slonca " + sunrise + "  Zachod Slonca " + sunset;
       messageIndex++;
     }
-    else if (messageIndex == 2)
-    {
+    else if (messageIndex == 2) {
       msg = "Dlugosc dnia " + dayLength;
       messageIndex++;
     }
     else if (messageIndex == 3)
     {
-      // Przygotuj linie imienin jeśli jeszcze nie zrobione
       if (namedayLines.empty())
       {
         String tekst = "IMIENINY: " + namedays;
@@ -2272,26 +2259,21 @@ void showCalendarCarousel()
         while (tmp.length() > 0)
         {
           String line = tmp;
-          // Dopasuj do maxWidth 480
           while (line.length() > 0)
           {
             int16_t w = 0;
             for (int i = 0; i < line.length(); i++)
             {
               char c = line[i];
-              if (c < FreeSans12pt7b.first || c > FreeSans12pt7b.last)
-                  continue;
+              if (c < FreeSans12pt7b.first || c > FreeSans12pt7b.last) continue;
               GFXglyph *glyph = &FreeSans12pt7b.glyph[c - FreeSans12pt7b.first];
               w += glyph->xAdvance;
             }
-            if (w <= 480)
-              break;
+            if (w <= 480) break;
             int lastSpace = line.lastIndexOf(' ');
-            if (lastSpace < 0)
-              break;
+            if (lastSpace < 0) break;
             line = line.substring(0, lastSpace);
           }
-
           namedayLines.push_back(line);
           tmp = tmp.substring(line.length());
           tmp.trim();
@@ -2299,7 +2281,6 @@ void showCalendarCarousel()
         namedayLineIndex = 0;
       }
 
-      // Wyświetl jedną linię imienin
       if (namedayLineIndex < namedayLines.size())
       {
         msg = namedayLines[namedayLineIndex];
@@ -2307,14 +2288,13 @@ void showCalendarCarousel()
       } 
       else
       {
-        // Koniec listy → reset
         namedayLines.clear();
         namedayLineIndex = 0;
         messageIndex = 0;
       }
     }
 
-    // --- Rysowanie napisu na canvas ---
+    // Rysowanie tekstu w obszarze kalendarza
     if (msg.length() > 0)
     {
       canvas.setFont(&FreeSans12pt7b);
@@ -2322,8 +2302,7 @@ void showCalendarCarousel()
       canvas.setCursor(0, 190);
       canvas.print(msg);
 
-      // Wyślij canvas na ekran
-      tft_pushCanvas(canvas);
+      //tft_pushCanvas(canvas);
     }
   }
 }
@@ -2564,7 +2543,7 @@ void setup()
     configTzTime("CET-1CEST,M3.5.0,M10.5.0/3", ntpServer); // Konfiguracja strefy czasowej dla Polski z czasem letnim
     timer1.attach(1, updateTimer);   // Ustaw timer, aby wywoływał funkcję updateTimer co sekundę
     timer2.attach(300, getWeatherData);   // Ustaw timer, aby wywoływał funkcję getWeatherData co 5 minut
-    timer3.attach(10, switchWeatherData);   // Ustaw timer, aby wywoływał funkcję switchWeatherData co 10 sekund
+    //timer3.attach(10, switchWeatherData);   // Ustaw timer, aby wywoływał funkcję switchWeatherData co 10 sekund
     fetchStationsFromServer();
     canvas.fillScreen(COLOR_BLACK);
     changeStation();
@@ -2588,10 +2567,11 @@ void loop()
   processIRCode();            // Funkcja przypisująca odpowiednie flagi do użytych przyciskow z pilota zdalnego sterowania
   volumeSetFromRemote();      // Obsługa regulacji głośności z pilota zdalnego sterowania
   vTaskDelay(2);              // Krótkie opóźnienie, oddaje czas procesora innym zadaniom
-  /*if (displayActive == false)
+  if (displayActive == false)
   {
-    showCalendarCarousel();     // Wywołanie przełączania kalendarza w linii
-  }*/
+    showCalendarCarousel();
+    switchWeatherData();
+  }
 
   if (IRrightArrow == true)  // Prawy przycisk kierunkowy w pilocie
   {
