@@ -76,20 +76,33 @@ GFXcanvas16 canvas(TFT_WIDTH, TFT_HEIGHT);  // Bufor do rysowania całego ekranu
 #define RGB565(r,g,b)  (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3))
 
 // Kolory dla canvas
-#define COLOR_RED        RGB565(255, 0, 0)
-#define COLOR_GREEN      RGB565(0, 255, 0)
-#define COLOR_BLUE       RGB565(0, 0, 255)
-#define COLOR_YELLOW     RGB565(255, 255, 0)
-#define COLOR_CYAN       RGB565(0, 255, 255)
-#define COLOR_MAGENTA    RGB565(255, 0, 255)
-#define COLOR_ORANGE     RGB565(255, 128, 0)
-#define COLOR_PURPLE     RGB565(128, 0, 255)
-#define COLOR_PINK       RGB565(255, 0, 128)
-#define COLOR_LIME       RGB565(128, 255, 0)
-#define COLOR_TURQUOISE  RGB565(0, 128, 255)
-#define COLOR_WHITE      RGB565(255, 255, 255)
-#define COLOR_GOLD       RGB565(231, 211, 90)
-#define COLOR_BLACK      RGB565(0, 0, 0)
+#define COLOR_RED        RGB565(255, 0, 0)       // Czerwony
+#define COLOR_GREEN      RGB565(0, 255, 0)       // Zielony
+#define COLOR_BLUE       RGB565(0, 0, 255)       // Niebieski
+#define COLOR_YELLOW     RGB565(255, 255, 0)     // Żółty
+#define COLOR_CYAN       RGB565(0, 255, 255)     // Turkus / błękitny
+#define COLOR_MAGENTA    RGB565(255, 0, 255)     // Magenta (fuksja)
+#define COLOR_ORANGE     RGB565(255, 128, 0)     // Pomarańczowy
+#define COLOR_PURPLE     RGB565(128, 0, 255)     // Fiolet
+#define COLOR_PINK       RGB565(255, 0, 128)     // Różowy
+#define COLOR_LIME       RGB565(128, 255, 0)     // Jasna limonka
+#define COLOR_TURQUOISE  RGB565(0, 128, 255)     // Turkus
+#define COLOR_WHITE      RGB565(255, 255, 255)   // Biały
+#define COLOR_GOLD       RGB565(231, 211, 90)    // Złoty
+#define COLOR_BLACK      RGB565(0, 0, 0)         // Czarny
+
+// Dodatkowe kolory
+#define COLOR_SKYBLUE     RGB565(135, 206, 235)  // Jasny niebieski (sky blue)
+#define COLOR_SPRINGGREEN RGB565(0, 255, 127)    // Zielony wiosenny (spring green)
+#define COLOR_DEEPPINK    RGB565(255, 20, 147)   // Intensywny róż (deep pink)
+#define COLOR_CORAL       RGB565(255, 127, 80)   // Koralowy (coral)
+#define COLOR_VIOLET      RGB565(238, 130, 238)  // Jasny fiolet (violet)
+#define COLOR_BROWN       RGB565(139, 69, 19)    // Brązowy (brown)
+#define COLOR_NAVY        RGB565(0, 0, 128)      // Granatowy (navy)
+#define COLOR_GRAY        RGB565(128, 128, 128)  // Szary (gray)
+#define COLOR_OLIVE       RGB565(128, 128, 0)    // Oliwkowy (olive)
+#define COLOR_MAROON      RGB565(128, 0, 0)      // Ciemnoczerwony (maroon)
+
 
 #define DISPLAY_TIMEOUT  12000         // czas wygaszenia ekranu = 12 sekund
 
@@ -423,29 +436,29 @@ void processIRCode()
     if (ir_code != 0)
     {
       detachInterrupt(recv_pin);
-      Serial.print("Kod NEC OK: ");
-      Serial.print(ir_code, HEX);
+      //Serial.print("Kod NEC OK: ");
+      //Serial.print(ir_code, HEX);
       ir_code = reverse_bits(ir_code, 32);   // Rotacja bitów zmiana z LSB-MSB na MSB-LSB
-      Serial.print("  MSB-LSB: ");
-      Serial.print(ir_code, HEX);
+      //Serial.print("  MSB-LSB: ");
+      //Serial.print(ir_code, HEX);
 
       uint8_t CMD = (ir_code >> 16) & 0xFF;  // Drugi bajt (inwersja adresu)
       uint8_t ADDR = ir_code & 0xFF;         // Czwarty bajt (inwersja komendy)
 
-      Serial.print("  ADR:");
-      Serial.print(ADDR, HEX);
-      Serial.print(" CMD:");
-      Serial.println(CMD, HEX);
+      //Serial.print("  ADR:");
+      //Serial.print(ADDR, HEX);
+      //Serial.print(" CMD:");
+      //Serial.println(CMD, HEX);
       ir_code = ADDR << 8 | CMD;             // Łączymy ADDR i CMD w jedną zmienną 0xDDRCMD
 
-      Serial.print("Czasy trwania impulsów:  9ms:");
+      /*Serial.print("Czasy trwania impulsów:  9ms:");
       Serial.print(pulse_duration_9ms);
       Serial.print("  4.5ms:");
       Serial.print(pulse_duration_4_5ms);
       Serial.print("  1690us:");
       Serial.print(pulse_duration_1690us);
       Serial.print("  560us:");
-      Serial.println(pulse_duration_560us);
+      Serial.println(pulse_duration_560us);*/
 
       attachInterrupt(digitalPinToInterrupt(recv_pin), pulseISR, CHANGE);
 
@@ -458,13 +471,13 @@ void processIRCode()
       if (stackSizeInBytes > 1024)
       {
         float stackSizeInKB = stackSizeInBytes / 1024.0;  // Przeliczenie na kilobajty (float dla precyzji)
-        Serial.print(stackSizeInKB, 2);  // Wydruk z dokładnością do 2 miejsc po przecinku
-        Serial.println(" KB");
+        //Serial.print(stackSizeInKB, 2);  // Wydruk z dokładnością do 2 miejsc po przecinku
+        //Serial.println(" KB");
       }
       else
       {
-        Serial.print(stackSizeInBytes);  // Wydruk w bajtach
-        Serial.println(" bajtów");
+        //Serial.print(stackSizeInBytes);  // Wydruk w bajtach
+        //Serial.println(" bajtów");
       }
 
       // Rozpoznawanie przycisków pilota na podstawie kodu i ustawianie flag użycia
@@ -1937,16 +1950,19 @@ void saveStationOnSD()
 // Funkcja do wyświetlania listy stacji radiowych na ILI9488
 void displayStations()
 {
-  // Wyczyść obszar ekranu przeznaczony na listę stacji (pierwsze 5 linii = 150 px)
-  tft_fillRect(0, 0, 480, 230, 0, 0, 0);
+  // Wyczyść tylko obszar listy (pierwsze ~230 px wysokości)
+  canvas.fillRect(0, 0, TFT_WIDTH, 230, COLOR_BLACK);
 
-  // Nagłówek
+  // --- Nagłówek ---
   String header = "STACJE RADIOWE   " + String(station_nr) + " / " + String(stationsCount);
-  //drawWrappedStringFont(&FreeSans12pt7b, 80, 20, header.c_str(), COLOR_WHITE, 480, 30);
+  canvas.setFont(&FreeSans12pt7b);
+  canvas.setTextColor(COLOR_WHITE);
+  canvas.setCursor(80, 20);  // nagłówek w górnej części
+  canvas.print(header);
 
   int displayRow = 1;
 
-  // Iteruj po stacjach (maks 5 linii na ekranie)
+  // Iteruj po stacjach (maks 6 linii na ekranie)
   for (int i = firstVisibleLine; i < min(firstVisibleLine + maxVisibleLines, stationsCount); i++)
   {
     char station[STATION_NAME_LENGTH + 1];
@@ -1961,33 +1977,41 @@ void displayStations()
       station[j] = EEPROM.read(i * (STATION_NAME_LENGTH + 1) + 1 + j);
     }
 
+    // Utwórz string z nazwy stacji
+    String stationName = String(station);
+    stationName.trim();  // usuń spacje i śmieci
+
     // --- Przytnij do 25 znaków ---
-    String stationNames = String(station);
-    if (stationNames.length() > 25)
+    if (stationName.length() > 25)
     {
-      stationNames = stationNames.substring(0, 25);
+      stationName = stationName.substring(0, 25);
     }
 
+    // Kolor w zależności od zaznaczenia
     if (i == currentSelection)
-    {
-        // Zaznaczona stacja → turkusowy tekst
-        canvas.setFont(&FreeSans12pt7b);
-        canvas.setTextColor(COLOR_TURQUOISE);
-        canvas.setCursor(0, displayRow * 30 + 20);
-        drawWrappedCanvasText(stationNames.c_str(), 0, displayRow * 30 + 20, 480, 30);
-    }
+      canvas.setTextColor(COLOR_TURQUOISE);
     else
-    {
-        // Normalna stacja → zielony tekst
-        canvas.setFont(&FreeSans12pt7b);
-        canvas.setTextColor(COLOR_LIME);
-        canvas.setCursor(0, displayRow * 30 + 20);
-        drawWrappedCanvasText(stationNames.c_str(), 0, displayRow * 30 + 20, 480, 30);
-    }
+      canvas.setTextColor(COLOR_LIME);
+
+    // Wyświetl stację – obniżenie o 5 px
+    canvas.setFont(&FreeSans12pt7b);
+    canvas.setCursor(0, displayRow * 30 + 25);  // +5 pikseli w pionie
+    canvas.print(stationName);
+
+    // --- Diagnostyka ---
+    Serial.print("Wyświetlana stacja: ");
+    Serial.print(stationName);
+    Serial.print(" | Bank: ");
+    Serial.println(bank_nr);
 
     displayRow++;
   }
+
+  // Wyślij canvas na ekran
+  tft_pushCanvas(canvas);
 }
+
+
 
 void displayRadio()
 {
@@ -2052,12 +2076,14 @@ void displayRadio()
 }
 
 
-// Funkcja do przewijania w górę
+// Funkcja do przewijania w górę z poprawnym zawijaniem listy
 void scrollUp()
 {
   if (currentSelection > 0)
   {
     currentSelection--;
+
+    // Jeśli wyszliśmy poza górną widoczną linię → przesuwamy okno
     if (currentSelection < firstVisibleLine)
     {
       firstVisibleLine = currentSelection;
@@ -2065,16 +2091,33 @@ void scrollUp()
   }
   else
   {
-    // Jeśli osiągnięto wartość 0, przejdź do najwyższej wartości
-    currentSelection = maxSelection(); 
-    firstVisibleLine = currentSelection - maxVisibleLines + 1; // Ustaw pierwszą widoczną linię na najwyższą
+    // Skok z góry listy na ostatnią stację
+    currentSelection = maxSelection();
+
+    // Ustaw okno tak, aby ostatnie maxVisibleLines było widoczne
+    if (stationsCount > maxVisibleLines)
+    {
+      firstVisibleLine = stationsCount - maxVisibleLines;
+    }
+    else
+    {
+      firstVisibleLine = 0;
+    }
   }
-  
-  Serial.print("Scroll Up: CurrentSelection = ");
+
+  // Korekta granic
+  if (firstVisibleLine < 0)
+    firstVisibleLine = 0;
+  if (firstVisibleLine > stationsCount - maxVisibleLines)
+    firstVisibleLine = stationsCount - maxVisibleLines;
+
+  // Debug
+  Serial.print("Scroll Up: currentSelection = ");
   Serial.println(currentSelection);
-  Serial.print("Scroll Down: firstVisibleLine = ");
+  Serial.print("Scroll Up: firstVisibleLine = ");
   Serial.println(firstVisibleLine);
 }
+
 
 // Funkcja do przewijania w dół
 void scrollDown()
@@ -2082,19 +2125,28 @@ void scrollDown()
   if (currentSelection < maxSelection())
   {
     currentSelection++;
+
+    // Jeśli wyszliśmy poza dolną widoczną linię → przesuwamy okno
     if (currentSelection >= firstVisibleLine + maxVisibleLines)
     {
-      firstVisibleLine++;
+        firstVisibleLine++;
     }
   }
   else
   {
-    // Jeśli osiągnięto maksymalną wartość, przejdź do najmniejszej (0)
+    // Skok z końca listy na pierwszą stację
     currentSelection = 0;
-    firstVisibleLine = 0; // Przywróć do pierwszej widocznej linii
+    firstVisibleLine = 0;
   }
 
-  Serial.print("Scroll Down: CurrentSelection = ");
+  // Korekta granic
+  if (firstVisibleLine < 0)
+    firstVisibleLine = 0;
+  if (firstVisibleLine > stationsCount - maxVisibleLines)
+    firstVisibleLine = stationsCount - maxVisibleLines;
+
+  // Debug
+  Serial.print("Scroll Down: currentSelection = ");
   Serial.println(currentSelection);
   Serial.print("Scroll Down: firstVisibleLine = ");
   Serial.println(firstVisibleLine);
@@ -2104,22 +2156,18 @@ void scrollDown()
 int maxSelection()
 {
   if (currentOption == INTERNET_RADIO)
-  {
-    return stationsCount - 1;  // Zwraca maksymalny wybór stacji radiowych
-  }
+    return stationsCount - 1;
   else if (currentOption == PLAY_FILES)
   {
-    if (folderSelection == true)
-    {
-      return folderCount - 1;  // Zwraca maksymalny wybór folderów
-    }
-    else if (fileSelection == true)
-    {
-      return filesCount - 1;  // Zwraca maksymalny wybór plików w bieżącym folderze
-    }
+    if (folderSelection)
+      return folderCount - 1;
+    if (fileSelection)
+      return filesCount - 1;
   }
-  return 0; // Zwraca 0, jeśli żaden warunek nie jest spełniony
+  return 0;
 }
+
+
 
 // --- Funkcja do przełączania danych pogodowych ---
 void switchWeatherData()
@@ -2131,7 +2179,7 @@ void switchWeatherData()
   {
     lastSwitchWeather = now;
 
-    // Czyszczenie obszaru pogodynki (np. Y=200–230)
+    // Czyszczenie obszaru pogodynki
     canvas.fillRect(0, 200, TFT_WIDTH, 30, COLOR_BLACK);
 
     if (weatherServerConnection)
@@ -2153,16 +2201,13 @@ void switchWeatherData()
 
       if (displayActive == false)
       {
-        // Rysowanie danych pogodowych WYŻEJ niż parametry audio
+        // Rysowanie danych pogodowych
         canvas.setFont(&FreeSans12pt7b);
         canvas.setTextColor(COLOR_PINK);
         canvas.setCursor(0, 220);   // linia 1 → Y=220
         canvas.print(line1);
-
         canvas.setCursor(240, 220); // linia 2 → obok
         canvas.print(line2);
-
-        //tft_pushCanvas(canvas);
       }
     }
     else
@@ -2170,13 +2215,10 @@ void switchWeatherData()
       // Brak połączenia z serwerem
       String errorText = "--- Brak polaczenia z serwerem pogody ---";
       canvas.fillRect(0, 200, TFT_WIDTH, 30, COLOR_BLACK);
-
       canvas.setFont(&FreeSans12pt7b);
       canvas.setTextColor(COLOR_RED);
       canvas.setCursor(0, 220);
       canvas.print(errorText);
-
-     //tft_pushCanvas(canvas);
     }
 
     // Zmiana cyklu
@@ -2264,11 +2306,9 @@ void showCalendarCarousel()
     if (msg.length() > 0)
     {
       canvas.setFont(&FreeSans12pt7b);
-      canvas.setTextColor(COLOR_GOLD);
+      canvas.setTextColor(COLOR_SKYBLUE);
       canvas.setCursor(0, 190);
       canvas.print(msg);
-
-      //tft_pushCanvas(canvas);
     }
   }
 }
@@ -2357,7 +2397,7 @@ void my_audio_info(Audio::msg_t m)
       if (unknowContent != -1)
       {
         // Wyczyść obszar w canvas
-        canvas.fillRect(0, 30, 480, 150, COLOR_BLACK);
+        canvas.fillRect(0, 30, 480, 200, COLOR_BLACK);
 
         // Wyświetl komunikat informacyjny w canvas
         canvas.setFont(&FreeSans12pt7b);
@@ -2374,7 +2414,7 @@ void my_audio_info(Audio::msg_t m)
       if (connectTo != -1)
       {
         // Wyczyść obszar w canvas
-        canvas.fillRect(0, 30, 480, 150, COLOR_BLACK);
+        canvas.fillRect(0, 30, 480, 200, COLOR_BLACK);
 
         // Wyświetl komunikat informacyjny w canvas
         canvas.setFont(&FreeSans12pt7b);
@@ -2517,7 +2557,7 @@ void setup()
   audioBuffer.changeMaxBlockSize(16384);  // Wywołanie metody na obiekcie audioBuffer, is default 1600 for mp3 and aac, set 16384 for FLAC 
 
   // Inicjalizuj pamięć EEPROM z odpowiednim rozmiarem
-  EEPROM.begin(MAX_STATIONS * STATION_NAME_LENGTH); // 100 * 42
+  EEPROM.begin(MAX_STATIONS * (STATION_NAME_LENGTH + 1));  // 99 * 43 = 4257 bajtów
 
   // Inicjalizacja WiFiManagera
   WiFiManager wifiManager;
@@ -2672,43 +2712,38 @@ void loop()
 
   }
 
-  if (IRdownArrow == true)  // Dolny przycisk kierunkowy w pilocie
-  {
-    IRdownArrow = false;
-    stationsList = true;
-    bank_nr = previous_bank_nr;
-    displayActive = true;
-    displayStartTime = millis();
-    station_nr = currentSelection + 1;
-    station_nr++;
-    if (station_nr > stationsCount) 
-    {
-      station_nr = 1;
-    }
-    Serial.print("Numer stacji do do przodu: ");
-    Serial.println(station_nr);
-    scrollDown(); 
-    displayStations();
-  }
+  if (IRdownArrow == true)  // Dolny przycisk kierunkowy
+{
+  IRdownArrow = false;
+  stationsList = true;
+  bank_nr = previous_bank_nr;
+  displayActive = true;
+  displayStartTime = millis();
 
-  if (IRupArrow == true)  // Górny przycisk kierunkowy w pilocie
-  {
-    IRupArrow = false;
-    stationsList = true;
-    bank_nr = previous_bank_nr;
-    displayActive = true;
-    displayStartTime = millis();
-    station_nr = currentSelection + 1;
-    station_nr--;
-    if (station_nr < 1) 
-    {
-      station_nr = stationsCount;
-    }
-    Serial.print("Numer stacji do tyłu: ");
-    Serial.println(station_nr);
-    scrollUp(); 
-    displayStations();
-  }
+  scrollDown(); 
+  station_nr = currentSelection + 1;
+  Serial.print("Numer stacji do przodu: ");
+  Serial.println(station_nr);
+
+  displayStations();
+}
+
+if (IRupArrow == true)  // Górny przycisk kierunkowy
+{
+  IRupArrow = false;
+  stationsList = true;
+  bank_nr = previous_bank_nr;
+  displayActive = true;
+  displayStartTime = millis();
+
+  scrollUp(); 
+  station_nr = currentSelection + 1;
+  Serial.print("Numer stacji do tyłu: ");
+  Serial.println(station_nr);
+
+  displayStations();
+}
+
 
   // Powrót do wyświetlania ostatniego numeru banku w dolnej linii po bezczynności podczas wybierania numeru banku bez zatwierdzenia
   if (displayActive && (millis() - displayStartTime > DISPLAY_TIMEOUT)) 
