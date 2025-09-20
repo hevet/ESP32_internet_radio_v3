@@ -2653,7 +2653,7 @@ void loop()
     if (bankSwitch == true)
     {
       bankSwitch = false;
-      canvas.fillRect(0, 280, 240, 40, COLOR_BLACK);
+      canvas.fillRect(0, 285, 240, 35, COLOR_BLACK);
       canvas.setFont(&FreeMonoBold12pt7b);
       canvas.setTextColor(COLOR_RED);
       canvas.setCursor(0, 310);
@@ -2681,7 +2681,7 @@ void loop()
       bank_nr = 1;
     }
     String bankNumber = "Bank " + String(bank_nr);
-    canvas.fillRect(0, 280, 100, 35, COLOR_BLACK);
+    canvas.fillRect(0, 285, 100, 35, COLOR_BLACK);
     canvas.setFont(&FreeMonoBold12pt7b);
     canvas.setTextColor(COLOR_RED);
     canvas.setCursor(0, 310);
@@ -2703,7 +2703,7 @@ void loop()
       bank_nr = 18;
     }
     String bankNumber = "Bank " + String(bank_nr);
-    canvas.fillRect(0, 280, 100, 40, COLOR_BLACK);
+    canvas.fillRect(0, 285, 100, 35, COLOR_BLACK);
     canvas.setFont(&FreeMonoBold12pt7b);
     canvas.setTextColor(COLOR_RED);
     canvas.setCursor(0, 310);
@@ -2761,7 +2761,7 @@ if (IRupArrow == true)  // Górny przycisk kierunkowy
       bank_nr = previous_bank_nr;
       bankSwitch = false;
       String bankNumber = "Bank " + String(bank_nr);
-      canvas.fillRect(0, 280, 100, 40, COLOR_BLACK);
+      canvas.fillRect(0, 285, 100, 35, COLOR_BLACK);
       canvas.setFont(&FreeMonoBold12pt7b);
       canvas.setTextColor(COLOR_ORANGE);
       canvas.setCursor(0, 310);
