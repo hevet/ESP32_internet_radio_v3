@@ -2244,7 +2244,9 @@ void showCalendarCarousel()
 
     String msg;
 
-    if (messageIndex == 0) {
+    if (messageIndex == 0)
+    {
+      calendar = normalizePolish(calendar);
       msg = "Dzisiaj jest " + calendar + " r";
       messageIndex++;
     }
