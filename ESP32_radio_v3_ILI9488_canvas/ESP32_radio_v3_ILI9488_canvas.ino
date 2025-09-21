@@ -2738,8 +2738,6 @@ void loop()
       fetchStationsFromServer();
     }
 
-    //canvas.fillRect(0, 0, TFT_WIDTH, 230, COLOR_BLACK);
-    //tft_pushCanvas(canvas);
     changeStation();
   }
 
@@ -2789,55 +2787,58 @@ void loop()
   }
 
   if (IRdownArrow == true)  // Dolny przycisk kierunkowy
-{
-  IRdownArrow = false;
-  stationsList = true;
-  bank_nr = previous_bank_nr;
-  displayActive = true;
-  displayStartTime = millis();
+  {
+    IRdownArrow = false;
+    stationsList = true;
+    bank_nr = previous_bank_nr;
+    displayActive = true;
+    displayStartTime = millis();
 
-  scrollDown(); 
-  station_nr = currentSelection + 1;
-  Serial.print("Numer stacji do przodu: ");
-  Serial.println(station_nr);
+    scrollDown(); 
+    station_nr = currentSelection + 1;
+    Serial.print("Numer stacji do przodu: ");
+    Serial.println(station_nr);
 
-  displayStations();
-}
+    displayStations();
+  }
 
-if (IRupArrow == true)  // Górny przycisk kierunkowy
-{
-  IRupArrow = false;
-  stationsList = true;
-  bank_nr = previous_bank_nr;
-  displayActive = true;
-  displayStartTime = millis();
+  if (IRupArrow == true)  // Górny przycisk kierunkowy
+  {
+    IRupArrow = false;
+    stationsList = true;
+    bank_nr = previous_bank_nr;
+    displayActive = true;
+    displayStartTime = millis();
 
-  scrollUp(); 
-  station_nr = currentSelection + 1;
-  Serial.print("Numer stacji do tyłu: ");
-  Serial.println(station_nr);
+    scrollUp(); 
+    station_nr = currentSelection + 1;
+    Serial.print("Numer stacji do tyłu: ");
+    Serial.println(station_nr);
 
-  displayStations();
-}
+    displayStations();
+  }
 
 
-  // Powrót do wyświetlania ostatniego numeru banku w dolnej linii po bezczynności podczas wybierania numeru banku bez zatwierdzenia
+  // Powrót do wyświetlania po bezczynności podczas wybierania numeru banku nr numeru stacji bez zatwierdzenia OK
   if (displayActive && (millis() - displayStartTime > DISPLAY_TIMEOUT)) 
   {
-    displayActive = false;
-    inputBuffer = "";
-    inputActive = false;
+    displayStartTime = millis(); // zresetuj, żeby kolejne timeouty też działały
 
-    if (stationsList == true)
+    if (stationsList || inputActive) 
     {
       stationsList = false;
+      inputBuffer = "";
+      inputActive = false;
+
+      Serial.println("Timeout: powrót z listy/wpisywania numeru.");
       displayRadio();
-    }
-    else
+    } 
+    else 
     {
       station_nr = previous_station_nr; 
       bank_nr = previous_bank_nr;
       bankSwitch = false;
+
       String bankNumber = "Bank " + String(bank_nr);
       canvas.fillRect(0, 285, 100, 35, COLOR_BLACK);
       canvas.setFont(&FreeMonoBold12pt7b);
@@ -2845,6 +2846,8 @@ if (IRupArrow == true)  // Górny przycisk kierunkowy
       canvas.setCursor(0, 310);
       canvas.print(bankNumber);
       tft_pushCanvas(canvas);
+
+      Serial.println("Timeout: powrót do banku.");
     }
   }
 
