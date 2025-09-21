@@ -522,8 +522,8 @@ void processIRCode()
             currentSelection = station_nr - 1;  // indeks 0-based
             firstVisibleLine = max(0, currentSelection - maxVisibleLines/2);
 
-            Serial.print("Przechodzę do stacji nr: ");
-            Serial.println(station_nr);
+            //Serial.print("Przechodzę do stacji nr: ");
+            //Serial.println(station_nr);
 
             displayStations();
           }
@@ -1409,9 +1409,6 @@ void fetchAndDisplayCalendar()
       Serial.println("Przysłowia na dziś:");
       Serial.println(allProverbs);
 
-      displayActive = true;
-      displayStartTime = millis();
-
     }
 
     else
@@ -2065,10 +2062,10 @@ void displayStations()
     canvas.print(stationName);
 
     // --- Diagnostyka ---
-    Serial.print("Wyświetlana stacja: ");
-    Serial.print(stationName);
-    Serial.print(" | Bank: ");
-    Serial.println(bank_nr);
+    //Serial.print("Wyświetlana stacja: ");
+    //Serial.print(stationName);
+    //Serial.print(" | Bank: ");
+    //Serial.println(bank_nr);
 
     displayRow++;
   }
@@ -2468,7 +2465,7 @@ void my_audio_info(Audio::msg_t m)
       if (unknowContent != -1)
       {
         // Wyczyść obszar w canvas
-        canvas.fillRect(0, 30, 480, 200, COLOR_BLACK);
+        canvas.fillRect(0, 35, 480, 220, COLOR_BLACK);
 
         // Wyświetl komunikat informacyjny w canvas
         canvas.setFont(&FreeSans12pt7b);
@@ -2485,7 +2482,7 @@ void my_audio_info(Audio::msg_t m)
       if (connectTo != -1)
       {
         // Wyczyść obszar w canvas
-        canvas.fillRect(0, 30, 480, 200, COLOR_BLACK);
+        canvas.fillRect(0, 35, 480, 220, COLOR_BLACK);
 
         // Wyświetl komunikat informacyjny w canvas
         canvas.setFont(&FreeSans12pt7b);
@@ -2753,12 +2750,11 @@ void loop()
     {
       bank_nr = 1;
     }
-    String bankNumber = "Bank " + String(bank_nr);
-    canvas.fillRect(0, 285, 100, 35, COLOR_BLACK);
+    canvas.fillRect(70, 285, 30, 35, COLOR_BLACK);
     canvas.setFont(&FreeMonoBold12pt7b);
-    canvas.setTextColor(COLOR_RED);
-    canvas.setCursor(0, 310);
-    canvas.print(bankNumber);
+    canvas.setTextColor(COLOR_YELLOW);
+    canvas.setCursor(70, 310);
+    canvas.print(bank_nr);
     tft_pushCanvas(canvas);
   }
 
@@ -2775,12 +2771,11 @@ void loop()
     {
       bank_nr = 18;
     }
-    String bankNumber = "Bank " + String(bank_nr);
-    canvas.fillRect(0, 285, 100, 35, COLOR_BLACK);
+    canvas.fillRect(70, 285, 30, 35, COLOR_BLACK);
     canvas.setFont(&FreeMonoBold12pt7b);
-    canvas.setTextColor(COLOR_RED);
-    canvas.setCursor(0, 310);
-    canvas.print(bankNumber);
+    canvas.setTextColor(COLOR_YELLOW);
+    canvas.setCursor(70, 310);
+    canvas.print(bank_nr);
     tft_pushCanvas(canvas);
 
   }
