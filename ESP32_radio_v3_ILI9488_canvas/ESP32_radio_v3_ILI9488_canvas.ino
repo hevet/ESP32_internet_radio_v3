@@ -22,9 +22,9 @@
 #define TFT_CS    5    // Pin CS (Chip Select) – wybór układu TFT
 #define TFT_DC    4    // Pin DC (Data/Command) – rozróżnia dane od komend
 #define TFT_RST  -1    // Pin RESET – tutaj -1 oznacza brak użycia sprzętowego resetu
-#define TFT_MOSI 12    // Pin MOSI (Master Out Slave In) – dane z ESP32 do TFT
+#define TFT_MOSI 11    // Pin MOSI (Master Out Slave In) – dane z ESP32 do TFT
 #define TFT_MISO 13    // Pin MISO (Master In Slave Out) – odczyt danych z TFT (rzadko używany)
-#define TFT_SCLK 11    // Pin SCLK (Serial Clock) – zegar SPI
+#define TFT_SCLK 12    // Pin SCLK (Serial Clock) – zegar SPI
 
 // Rozdzielczość wyświetlacza TFT (dla ILI9488 to 480x320)
 #define TFT_WIDTH   480   // Szerokość ekranu w pikselach
@@ -105,6 +105,10 @@ GFXcanvas16 canvas(TFT_WIDTH, TFT_HEIGHT);  // Bufor do rysowania całego ekranu
 
 
 #define DISPLAY_TIMEOUT  12000         // czas wygaszenia ekranu = 12 sekund
+
+int gainLowPass = 3;
+int gainBandPass = 6;
+int gainHighPass = 15;
 
 int currentSelection = 0;         // Numer aktualnego wyboru na ekranie OLED
 int firstVisibleLine = 0;         // Numer pierwszej widocznej linii na ekranie OLED
@@ -282,28 +286,28 @@ const int TOLERANCE = 160;          // Tolerancja (w mikrosekundach)
 const int HIGH_THRESHOLD = 1690;    // Sygnał "1"
 const int LOW_THRESHOLD = 600;      // Sygnał "0"
 
-#define rcCmdVolumeUp     0x0013   // Przycisk VOL+
-#define rcCmdVolumeDown   0x0008   // Przycisk VOL-
-#define rcCmdArrowRight   0x0014   // Przycisk w prawo - następna stacja / następny plik, od razu uruchamiane przejście
-#define rcCmdArrowLeft    0x0016   // Przycisk w lewo - poprzednia stacja / poprzedni plik, od razu uruchamiane przejście
-#define rcCmdArrowUp      0x0019   // Przycisk w górę - lista stacji / lista plików - krok do góry na przewijanej liście
-#define rcCmdArrowDown    0x0011   // Przycisk w dół - lista stacji / lista plikow - krok w dół na przewijanej liście
-#define rcCmdOk           0x0015   // Przycisk OK - zatwierdzenie wybranej stacji / banku / folderu / pliku
-#define rcCmdMode         0x000E   // Przycisk SOURCE - przełączanie radio internetowe / odtwarzacz plików
-#define rcCmdHome         0x000F   // Przycisk SOURCE - uruchomienie wyświetlania kartki z kalendarza na na określony czas
+#define rcCmdVolumeUp     0xB914   // Przycisk VOL+
+#define rcCmdVolumeDown   0xB915   // Przycisk VOL-
+#define rcCmdArrowRight   0xB90B   // Przycisk w prawo - następna stacja / następny plik, od razu uruchamiane przejście
+#define rcCmdArrowLeft    0xB90A   // Przycisk w lewo - poprzednia stacja / poprzedni plik, od razu uruchamiane przejście
+#define rcCmdArrowUp      0xB987   // Przycisk w górę - lista stacji / lista plików - krok do góry na przewijanej liście
+#define rcCmdArrowDown    0xB986   // Przycisk w dół - lista stacji / lista plikow - krok w dół na przewijanej liście
+#define rcCmdOk           0xB90E   // Przycisk OK - zatwierdzenie wybranej stacji / banku / folderu / pliku
+#define rcCmdMode         0xB992   // Przycisk SOURCE - przełączanie radio internetowe / odtwarzacz plików
+#define rcCmdHome         0xB985   // Przycisk SOURCE - uruchomienie wyświetlania kartki z kalendarza na na określony czas
 #define rcCmdMute         0x000A   // Przycisk MUTE - wyciszenie
-#define rcCmdKey0         0x0012   // Przycisk "0"
-#define rcCmdKey1         0x0015   // Przycisk "1"
-#define rcCmdKey2         0x0014   // Przycisk "2"
-#define rcCmdKey3         0x0008   // Przycisk "3"
-#define rcCmdKey4         0x0011   // Przycisk "4"
-#define rcCmdKey5         0x0010   // Przycisk "5"
-#define rcCmdKey6         0x0009   // Przycisk "6"
-#define rcCmdKey7         0x0007   // Przycisk "7"
-#define rcCmdKey8         0x0006   // Przycisk "8"
-#define rcCmdKey9         0x0005   // Przycisk "9"
-#define rcCmdBankUp       0x001B   // Przycisk FF+ - lista banków / lista folderów - krok w dół na przewijanej liście
-#define rcCmdBankDown     0x0017   // Przycisk FF- lista banków / lista folderów - krok do góry na przewijanej liście
+#define rcCmdKey0         0xB900   // Przycisk "0"
+#define rcCmdKey1         0xB901   // Przycisk "1"
+#define rcCmdKey2         0xB902   // Przycisk "2"
+#define rcCmdKey3         0xB903   // Przycisk "3"
+#define rcCmdKey4         0xB904   // Przycisk "4"
+#define rcCmdKey5         0xB905   // Przycisk "5"
+#define rcCmdKey6         0xB906   // Przycisk "6"
+#define rcCmdKey7         0xB907   // Przycisk "7"
+#define rcCmdKey8         0xB908   // Przycisk "8"
+#define rcCmdKey9         0xB909   // Przycisk "9"
+#define rcCmdBankUp       0xB90D   // Przycisk FF+ - lista banków / lista folderów - krok w dół na przewijanej liście
+#define rcCmdBankDown     0xB90C   // Przycisk FF- lista banków / lista folderów - krok do góry na przewijanej liście
 #define rcCmdPauseResume  0x0012   // Przycisk Play / Pause
 
 
@@ -864,7 +868,7 @@ void getWeatherData()
   
   // Poniżej zdefiniuj swój unikalny URL zawierający dane lokalizacji wraz z kluczem API otrzymany po resetracji w serwisie openweathermap.org
   // String url = "http://api.openweathermap.org/data/2.5/weather?q=Piła,pl&appid=your_own_API_key";
-  String url = "http://api.openweathermap.org/data/2.5/weather?q=Piła,pl&appid=cbc705bd4e66cb3422111f1533a78355";
+  String url = "http://api.openweathermap.org/data/2.5/weather?q=Bydgoszcz,pl&appid=cbc705bd4e66cb3422111f1533a78355";
 
   http.begin(url);  // Inicjalizacja połączenia HTTP z podanym URL-em, otwieramy połączenie z serwerem.
 
@@ -922,14 +926,14 @@ void updateWeather()
   Serial.print("Data ");
   Serial.println(formattedDate);
   Serial.print("Temperatura ");
-  Serial.print(temp, 2);
+  Serial.print(temp, 1);
   Serial.println(" °C");
-  tempStr = "Temperatura " + String(temp, 2) + " C";
+  tempStr = "Temperatura " + String(temp, 1) + "'C";
   
   Serial.print("Odczuwalna temperatura ");
   Serial.print(feels_like, 2);
   Serial.println(" °C");
-  feels_likeStr = "Odczuwalna " + String(feels_like, 2) + " C";
+  feels_likeStr = "Odczuwalna " + String(feels_like, 1) + "'C";
   
   Serial.print("Wilgotność ");
   Serial.print(humidity);
@@ -939,7 +943,7 @@ void updateWeather()
   Serial.print("Ciśnienie ");
   Serial.print(pressure);
   Serial.println(" hPa");
-  pressureStr = "Cisnienie " + String(pressure, 2) + " hPa";
+  pressureStr = "Cisnienie " + String(pressure, 0) + " hPa";
   
   Serial.print("Opis pogody ");
   Serial.println(weatherDescription);
@@ -1006,9 +1010,9 @@ void volumeSetFromRemote()
   {
     IRvolumeUp = false;
     volumeValue++;
-    if (volumeValue > 18)
+    if (volumeValue > 21)
     {
-      volumeValue = 18;
+      volumeValue = 21;
     }
     volumeSet();
   }
@@ -1017,9 +1021,9 @@ void volumeSetFromRemote()
   {
     IRvolumeDown = false;
     volumeValue--;
-    if (volumeValue < 3)
+    if (volumeValue < 1)
     {
-      volumeValue = 3;
+      volumeValue = 1;
     }
     volumeSet();
   }
@@ -2526,6 +2530,7 @@ void setup()
 
   audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT); // Konfiguruj pinout dla interfejsu I2S audio
   audio.setVolume(volumeValue); // Ustaw głośność na podstawie wartości zmiennej volumeValue w zakresie 0...21
+  audio.setTone(gainLowPass, gainBandPass, gainHighPass);
 
   // Sprawdzamy, czy pamięć PSRAM została poprawnie zainicjowana
   if (psramInit())
