@@ -286,28 +286,28 @@ const int TOLERANCE = 160;          // Tolerancja (w mikrosekundach)
 const int HIGH_THRESHOLD = 1690;    // Sygnał "1"
 const int LOW_THRESHOLD = 600;      // Sygnał "0"
 
-#define rcCmdVolumeUp     0xB914   // Przycisk VOL+
-#define rcCmdVolumeDown   0xB915   // Przycisk VOL-
-#define rcCmdArrowRight   0xB90B   // Przycisk w prawo - następna stacja / następny plik, od razu uruchamiane przejście
-#define rcCmdArrowLeft    0xB90A   // Przycisk w lewo - poprzednia stacja / poprzedni plik, od razu uruchamiane przejście
-#define rcCmdArrowUp      0xB987   // Przycisk w górę - lista stacji / lista plików - krok do góry na przewijanej liście
-#define rcCmdArrowDown    0xB986   // Przycisk w dół - lista stacji / lista plikow - krok w dół na przewijanej liście
-#define rcCmdOk           0xB90E   // Przycisk OK - zatwierdzenie wybranej stacji / banku / folderu / pliku
-#define rcCmdMode         0xB992   // Przycisk SOURCE - przełączanie radio internetowe / odtwarzacz plików
-#define rcCmdHome         0xB985   // Przycisk SOURCE - uruchomienie wyświetlania kartki z kalendarza na na określony czas
+#define rcCmdVolumeUp     0x0013   // Przycisk VOL+
+#define rcCmdVolumeDown   0x0008   // Przycisk VOL-
+#define rcCmdArrowRight   0x0014   // Przycisk w prawo - następna stacja / następny plik, od razu uruchamiane przejście
+#define rcCmdArrowLeft    0x0016   // Przycisk w lewo - poprzednia stacja / poprzedni plik, od razu uruchamiane przejście
+#define rcCmdArrowUp      0x0019   // Przycisk w górę - lista stacji / lista plików - krok do góry na przewijanej liście
+#define rcCmdArrowDown    0x0011   // Przycisk w dół - lista stacji / lista plikow - krok w dół na przewijanej liście
+#define rcCmdOk           0x0015   // Przycisk OK - zatwierdzenie wybranej stacji / banku / folderu / pliku
+#define rcCmdMode         0x000E   // Przycisk SOURCE - przełączanie radio internetowe / odtwarzacz plików
+#define rcCmdHome         0x000F   // Przycisk SOURCE - uruchomienie wyświetlania kartki z kalendarza na na określony czas
 #define rcCmdMute         0x000A   // Przycisk MUTE - wyciszenie
-#define rcCmdKey0         0xB900   // Przycisk "0"
-#define rcCmdKey1         0xB901   // Przycisk "1"
-#define rcCmdKey2         0xB902   // Przycisk "2"
-#define rcCmdKey3         0xB903   // Przycisk "3"
-#define rcCmdKey4         0xB904   // Przycisk "4"
-#define rcCmdKey5         0xB905   // Przycisk "5"
-#define rcCmdKey6         0xB906   // Przycisk "6"
-#define rcCmdKey7         0xB907   // Przycisk "7"
-#define rcCmdKey8         0xB908   // Przycisk "8"
-#define rcCmdKey9         0xB909   // Przycisk "9"
-#define rcCmdBankUp       0xB90D   // Przycisk FF+ - lista banków / lista folderów - krok w dół na przewijanej liście
-#define rcCmdBankDown     0xB90C   // Przycisk FF- lista banków / lista folderów - krok do góry na przewijanej liście
+#define rcCmdKey0         0x004C   // Przycisk "0"
+#define rcCmdKey1         0x0040   // Przycisk "1"
+#define rcCmdKey2         0x0041   // Przycisk "2"
+#define rcCmdKey3         0x0042   // Przycisk "3"
+#define rcCmdKey4         0x0044   // Przycisk "4"
+#define rcCmdKey5         0x0045   // Przycisk "5"
+#define rcCmdKey6         0x0046   // Przycisk "6"
+#define rcCmdKey7         0x0048   // Przycisk "7"
+#define rcCmdKey8         0x0049   // Przycisk "8"
+#define rcCmdKey9         0x004A   // Przycisk "9"
+#define rcCmdBankUp       0x001B   // Przycisk FF+ - lista banków / lista folderów - krok w dół na przewijanej liście
+#define rcCmdBankDown     0x0017   // Przycisk FF- lista banków / lista folderów - krok do góry na przewijanej liście
 #define rcCmdPauseResume  0x0012   // Przycisk Play / Pause
 
 
