@@ -226,16 +226,17 @@ Ticker timer3;                            // Timer do przełączania wyświetlan
 
 volatile bool updateClockFlag = false;  // flaga do odświeżania zegara
 
-void IRAM_ATTR timerCallback() {
-    updateClockFlag = true;  // tylko ustaw flagę w przerwaniu
+void IRAM_ATTR timerCallback()
+{
+  updateClockFlag = true;  // tylko ustaw flagę w przerwaniu
 }
 
 WiFiClient client;                        // Obiekt do obsługi połączenia WiFi dla klienta HTTP
 
-SPIClass spi = SPIClass(HSPI); // Użycie VSPI dla ekranu
+SPIClass spi = SPIClass(HSPI); // Użycie HSPI dla ekranu
 
 // Konfiguracja dodatkowego SPI z wybranymi pinami dla czytnika kart SD
-SPIClass customSPI = SPIClass(FSPI);  // Użycie HSPI dla karty SD
+SPIClass customSPI = SPIClass(FSPI);  // Użycie FSPI dla karty SD
 
 char stations[MAX_STATIONS][STATION_NAME_LENGTH];   // Tablica przechowująca nazwy stacji wraz z bankiem i numerem stacji
 
@@ -292,19 +293,23 @@ const int LOW_THRESHOLD = 600;      // Sygnał "0"
 #define rcCmdMode         0x000E   // Przycisk SOURCE - przełączanie radio internetowe / odtwarzacz plików
 #define rcCmdHome         0x000F   // Przycisk SOURCE - uruchomienie wyświetlania kartki z kalendarza na na określony czas
 #define rcCmdMute         0x000A   // Przycisk MUTE - wyciszenie
-#define rcCmdKey0         0x0012   // Przycisk "0"
-#define rcCmdKey1         0x0015   // Przycisk "1"
-#define rcCmdKey2         0x0014   // Przycisk "2"
-#define rcCmdKey3         0x0008   // Przycisk "3"
-#define rcCmdKey4         0x0011   // Przycisk "4"
-#define rcCmdKey5         0x0010   // Przycisk "5"
-#define rcCmdKey6         0x0009   // Przycisk "6"
-#define rcCmdKey7         0x0007   // Przycisk "7"
-#define rcCmdKey8         0x0006   // Przycisk "8"
-#define rcCmdKey9         0x0005   // Przycisk "9"
+#define rcCmdKey0         0x004C   // Przycisk "0"
+#define rcCmdKey1         0x0040   // Przycisk "1"
+#define rcCmdKey2         0x0041   // Przycisk "2"
+#define rcCmdKey3         0x0042   // Przycisk "3"
+#define rcCmdKey4         0x0044   // Przycisk "4"
+#define rcCmdKey5         0x0045   // Przycisk "5"
+#define rcCmdKey6         0x0046   // Przycisk "6"
+#define rcCmdKey7         0x0048   // Przycisk "7"
+#define rcCmdKey8         0x0049   // Przycisk "8"
+#define rcCmdKey9         0x004A   // Przycisk "9"
 #define rcCmdBankUp       0x001B   // Przycisk FF+ - lista banków / lista folderów - krok w dół na przewijanej liście
 #define rcCmdBankDown     0x0017   // Przycisk FF- lista banków / lista folderów - krok do góry na przewijanej liście
 #define rcCmdPauseResume  0x0012   // Przycisk Play / Pause
+
+String inputBuffer = "";       // Bufor na wciśnięte cyfry
+unsigned long inputStartTime;  // Czas rozpoczęcia wpisywania numeru
+bool inputActive = false;      // Flaga, czy jesteśmy w trybie wpisywania numeru stacji
 
 
 // Funkcja obsługująca przerwanie (reakcja na zmianę stanu pinu)
@@ -436,19 +441,19 @@ void processIRCode()
     if (ir_code != 0)
     {
       detachInterrupt(recv_pin);
-      //Serial.print("Kod NEC OK: ");
-      //Serial.print(ir_code, HEX);
+      Serial.print("Kod NEC OK: ");
+      Serial.print(ir_code, HEX);
       ir_code = reverse_bits(ir_code, 32);   // Rotacja bitów zmiana z LSB-MSB na MSB-LSB
-      //Serial.print("  MSB-LSB: ");
-      //Serial.print(ir_code, HEX);
+      Serial.print("  MSB-LSB: ");
+      Serial.print(ir_code, HEX);
 
       uint8_t CMD = (ir_code >> 16) & 0xFF;  // Drugi bajt (inwersja adresu)
       uint8_t ADDR = ir_code & 0xFF;         // Czwarty bajt (inwersja komendy)
 
-      //Serial.print("  ADR:");
-      //Serial.print(ADDR, HEX);
-      //Serial.print(" CMD:");
-      //Serial.println(CMD, HEX);
+      Serial.print("  ADR:");
+      Serial.print(ADDR, HEX);
+      Serial.print(" CMD:");
+      Serial.println(CMD, HEX);
       ir_code = ADDR << 8 | CMD;             // Łączymy ADDR i CMD w jedną zmienną 0xDDRCMD
 
       /*Serial.print("Czasy trwania impulsów:  9ms:");
@@ -507,7 +512,28 @@ void processIRCode()
       }
       else if (ir_code == rcCmdOk)           // Przycisk OK
       {  
-        IRokButton = true;
+        
+        if (inputActive && inputBuffer.length() > 0)
+        {
+          int chosenStation = inputBuffer.toInt();
+          if (chosenStation >= 1 && chosenStation <= stationsCount)
+          {
+            station_nr = chosenStation;
+            currentSelection = station_nr - 1;  // indeks 0-based
+            firstVisibleLine = max(0, currentSelection - maxVisibleLines/2);
+
+            Serial.print("Przechodzę do stacji nr: ");
+            Serial.println(station_nr);
+
+            displayStations();
+          }
+         inputBuffer = "";
+         inputActive = false;
+       }
+       else
+       {
+        IRokButton = true; // normalne działanie
+       }
       }
       else if (ir_code == rcCmdVolumeUp)     // Przycisk VOL+
       {  
@@ -533,6 +559,18 @@ void processIRCode()
       {
         IRmuteTrigger = true;
       }
+
+      else if (ir_code == rcCmdKey0) { handleDigitInput(0); }
+      else if (ir_code == rcCmdKey1) { handleDigitInput(1); }
+      else if (ir_code == rcCmdKey2) { handleDigitInput(2); }
+      else if (ir_code == rcCmdKey3) { handleDigitInput(3); }
+      else if (ir_code == rcCmdKey4) { handleDigitInput(4); }
+      else if (ir_code == rcCmdKey5) { handleDigitInput(5); }
+      else if (ir_code == rcCmdKey6) { handleDigitInput(6); }
+      else if (ir_code == rcCmdKey7) { handleDigitInput(7); }
+      else if (ir_code == rcCmdKey8) { handleDigitInput(8); }
+      else if (ir_code == rcCmdKey9) { handleDigitInput(9); }
+
       else
       {
         Serial.println("Inny przycisk");
@@ -543,6 +581,33 @@ void processIRCode()
     }
   }
 }
+
+void handleDigitInput(int digit)
+{
+  if (!inputActive)
+  {
+    inputBuffer = "";
+    inputActive = true;
+    inputStartTime = millis();
+  }
+
+  if (inputBuffer.length() < 2)
+  {   // max 2 cyfry
+    inputBuffer += String(digit);
+  }
+
+  Serial.print("Wprowadzono: ");
+  Serial.println(inputBuffer);
+
+  // pokaż na ekranie wpisany numer
+  canvas.fillRect(210, 285, 40, 35, COLOR_BLACK);  // wyczyść pole
+  canvas.setFont(&FreeMonoBold12pt7b);
+  canvas.setTextColor(COLOR_YELLOW);
+  canvas.setCursor(210, 310);
+  canvas.print(inputBuffer);
+  tft_pushCanvas(canvas);
+}
+
 
 // Funkcja sprawdza, czy plik jest plikiem audio na podstawie jego rozszerzenia
 bool isAudioFile(const char *fileNameString)
@@ -2587,6 +2652,7 @@ void setup()
     //timer3.attach(10, switchWeatherData);   // Ustaw timer, aby wywoływał funkcję switchWeatherData co 10 sekund
     fetchStationsFromServer();
     canvas.fillScreen(COLOR_BLACK);
+    tft_pushCanvas(canvas);
     changeStation();
     getWeatherData();
     fetchAndDisplayCalendar();
@@ -2666,6 +2732,9 @@ void loop()
       station_nr = 1;
       fetchStationsFromServer();
     }
+
+    //canvas.fillRect(0, 0, TFT_WIDTH, 230, COLOR_BLACK);
+    //tft_pushCanvas(canvas);
     changeStation();
   }
 
@@ -2751,6 +2820,8 @@ if (IRupArrow == true)  // Górny przycisk kierunkowy
   if (displayActive && (millis() - displayStartTime > DISPLAY_TIMEOUT)) 
   {
     displayActive = false;
+    inputBuffer = "";
+    inputActive = false;
 
     if (stationsList == true)
     {
