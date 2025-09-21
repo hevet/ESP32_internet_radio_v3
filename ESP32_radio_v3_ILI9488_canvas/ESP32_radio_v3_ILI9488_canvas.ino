@@ -53,9 +53,9 @@ GFXcanvas16 canvas(TFT_WIDTH, TFT_HEIGHT);  // Bufor do rysowania całego ekranu
 #define MAX_DIRECTORIES 128       // Maksymalna liczba katalogów
 #define MAX_FILES 128             // Maksymalna liczba plików w katalogu
 
-#define STATIONS_URL1   "https://raw.githubusercontent.com/sarunia/ESP32_stream/main/radio_v2_bank_01"      // Adres URL do pliku z listą stacji radiowych
-#define STATIONS_URL2   "https://raw.githubusercontent.com/sarunia/ESP32_stream/main/radio_v2_bank_02"      // Adres URL do pliku z listą stacji radiowych
-#define STATIONS_URL3   "https://raw.githubusercontent.com/sarunia/ESP32_stream/main/radio_v2_bank_03"      // Adres URL do pliku z listą stacji radiowych
+#define STATIONS_URL1   "https://raw.githubusercontent.com/hevet/radio-player-stream/main/bank01.txt"       // Adres URL do pliku z listą stacji radiowych
+#define STATIONS_URL2   "https://raw.githubusercontent.com/hevet/radio-player-stream/main/bank02.txt"       // Adres URL do pliku z listą stacji radiowych
+#define STATIONS_URL3   "https://raw.githubusercontent.com/hevet/radio-player-stream/main/bank03.txt"       // Adres URL do pliku z listą stacji radiowych
 #define STATIONS_URL4   "https://raw.githubusercontent.com/sarunia/ESP32_stream/main/radio_v2_bank_04"      // Adres URL do pliku z listą stacji radiowych
 #define STATIONS_URL5   "https://raw.githubusercontent.com/sarunia/ESP32_stream/main/radio_v2_bank_05"      // Adres URL do pliku z listą stacji radiowych
 #define STATIONS_URL6   "https://raw.githubusercontent.com/sarunia/ESP32_stream/main/radio_v2_bank_06"      // Adres URL do pliku z listą stacji radiowych
