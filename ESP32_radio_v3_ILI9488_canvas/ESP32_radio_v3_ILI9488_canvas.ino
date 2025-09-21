@@ -471,7 +471,7 @@ void processIRCode()
 
       attachInterrupt(digitalPinToInterrupt(recv_pin), pulseISR, CHANGE);
 
-      Serial.print("Kontrola stosu: ");
+      //Serial.print("Kontrola stosu: ");
 
       // Pobranie minimalnej liczby wolnych słów stosu (każde słowo to 4 bajty)
       uint32_t stackSizeInBytes = uxTaskGetStackHighWaterMark(NULL) * 4;
@@ -526,8 +526,8 @@ void processIRCode()
             currentSelection = station_nr - 1;  // indeks 0-based
             firstVisibleLine = max(0, currentSelection - maxVisibleLines/2);
 
-            Serial.print("Przechodzę do stacji nr: ");
-            Serial.println(station_nr);
+            //Serial.print("Przechodzę do stacji nr: ");
+            //Serial.println(station_nr);
 
             displayStations();
           }
@@ -592,7 +592,8 @@ void handleDigitInput(int digit)
   {
     inputBuffer = "";
     inputActive = true;
-    inputStartTime = millis();
+    displayActive = true;
+    displayStartTime = millis();
   }
 
   if (inputBuffer.length() < 2)
@@ -1412,9 +1413,6 @@ void fetchAndDisplayCalendar()
       Serial.println("Przysłowia na dziś:");
       Serial.println(allProverbs);
 
-      displayActive = true;
-      displayStartTime = millis();
-
     }
 
     else
@@ -2068,10 +2066,10 @@ void displayStations()
     canvas.print(stationName);
 
     // --- Diagnostyka ---
-    Serial.print("Wyświetlana stacja: ");
-    Serial.print(stationName);
-    Serial.print(" | Bank: ");
-    Serial.println(bank_nr);
+    //Serial.print("Wyświetlana stacja: ");
+    //Serial.print(stationName);
+    //Serial.print(" | Bank: ");
+    //Serial.println(bank_nr);
 
     displayRow++;
   }
@@ -2084,64 +2082,67 @@ void displayStations()
 
 void displayRadio()
 {
-  // --- Czyszczenie całego ekranu przed rysowaniem nowej zawartości ---
-  canvas.fillScreen(COLOR_BLACK);
+  if (displayActive == false)
+  {
+    // --- Czyszczenie całego ekranu przed rysowaniem nowej zawartości ---
+    canvas.fillScreen(COLOR_BLACK);
 
-  // --- Nazwa stacji ---
-  String mainName = stationName;
-  if (mainName.length() > 25) {
-    mainName = mainName.substring(0, 25); // Przytnij do max 25 znaków
+    // --- Nazwa stacji ---
+    String mainName = stationName;
+    if (mainName.length() > 25) {
+      mainName = mainName.substring(0, 25); // Przytnij do max 25 znaków
+    }
+    mainName.trim(); // Usuń ewentualne spacje z początku i końca
+
+    canvas.setFont(&FreeSansBold18pt7b);   // Ustawienie dużej czcionki dla nazwy stacji
+    canvas.setTextColor(COLOR_TURQUOISE); // Kolor nazwy stacji
+    canvas.setCursor(0, 30);               // Ustawienie pozycji początkowej dla tekstu
+    canvas.println(mainName);              // Wyświetlenie nazwy stacji
+
+    // --- Informacje o aktualnym strumieniu (stream title) ---
+    canvas.setFont(&FreeSans12pt7b);      // Ustawienie mniejszej czcionki dla stream title
+    canvas.setTextColor(COLOR_LIME);      // Kolor tekstu informacji o stacji
+    drawWrappedCanvasText(stationInfo.c_str(), 0, 70, 480, 30); // Wyświetlenie zawijanego tekstu
+
+    // --- Numer banku i numer stacji ---
+    String bankInfo = "Bank " + String(bank_nr);
+    if (bank_nr < 10) bankInfo += " "; // Dodanie spacji dla wyrównania
+    bankInfo += " Stacja " + String(previous_station_nr);
+
+    canvas.setFont(&FreeMonoBold12pt7b);  // Czcionka dla informacji o banku i stacji
+    canvas.setTextColor(COLOR_ORANGE);    // Kolor tekstu
+    canvas.setCursor(0, 310);             // Pozycja w dolnej części ekranu
+    canvas.print(bankInfo);               // Wyświetlenie numeru banku i stacji
+
+    // --- Parametry audio (bitrate, sample rate, bits per sample) ---
+    String audioInfoDisplay = "";
+    bitrateString.trim();      // Usuń białe znaki
+    sampleRateString.trim();
+    bitsPerSampleString.trim();
+
+    if (bitrateString.length() > 0)  audioInfoDisplay += bitrateString + " b/s   ";
+    if (sampleRateString.length() > 0)  audioInfoDisplay += sampleRateString + " Hz    ";
+    if (bitsPerSampleString.length() > 0)  audioInfoDisplay += bitsPerSampleString + " bit";
+
+    canvas.setFont(&FreeMonoBold12pt7b);  // Czcionka dla parametrów audio
+    canvas.setTextColor(COLOR_YELLOW);    // Kolor tekstu
+    canvas.setCursor(5, 250);             // Pozycja tekstu powyżej głośności
+    canvas.print(audioInfoDisplay);       // Wyświetlenie parametrów audio
+
+    // --- Wyświetlenie głośności ---
+    volumeDisplay = "VOL " + String(volumeValue);
+    canvas.setTextColor(COLOR_WHITE);     // Kolor dla głośności
+    canvas.setCursor(5, 280);             // Pozycja tekstu
+    canvas.print(volumeDisplay);          // Wyświetlenie głośności
+
+    // --- Typ odtwarzanego pliku (MP3, FLAC, AAC, etc.) ---
+    canvas.setTextColor(COLOR_TURQUOISE); // Kolor tekstu
+    canvas.setCursor(150, 280);           // Pozycja w dolnej części ekranu
+    canvas.print(fileType);               // Wyświetlenie typu pliku
+
+    // --- Wysyłanie całego canvasu na ekran TFT ---
+    tft_pushCanvas(canvas);
   }
-  mainName.trim(); // Usuń ewentualne spacje z początku i końca
-
-  canvas.setFont(&FreeSansBold18pt7b);   // Ustawienie dużej czcionki dla nazwy stacji
-  canvas.setTextColor(COLOR_TURQUOISE); // Kolor nazwy stacji
-  canvas.setCursor(0, 30);               // Ustawienie pozycji początkowej dla tekstu
-  canvas.println(mainName);              // Wyświetlenie nazwy stacji
-
-  // --- Informacje o aktualnym strumieniu (stream title) ---
-  canvas.setFont(&FreeSans12pt7b);      // Ustawienie mniejszej czcionki dla stream title
-  canvas.setTextColor(COLOR_LIME);      // Kolor tekstu informacji o stacji
-  drawWrappedCanvasText(stationInfo.c_str(), 0, 70, 480, 30); // Wyświetlenie zawijanego tekstu
-
-  // --- Numer banku i numer stacji ---
-  String bankInfo = "Bank " + String(bank_nr);
-  if (bank_nr < 10) bankInfo += " "; // Dodanie spacji dla wyrównania
-  bankInfo += " Stacja " + String(previous_station_nr);
-
-  canvas.setFont(&FreeMonoBold12pt7b);  // Czcionka dla informacji o banku i stacji
-  canvas.setTextColor(COLOR_ORANGE);    // Kolor tekstu
-  canvas.setCursor(0, 310);             // Pozycja w dolnej części ekranu
-  canvas.print(bankInfo);               // Wyświetlenie numeru banku i stacji
-
-  // --- Parametry audio (bitrate, sample rate, bits per sample) ---
-  String audioInfoDisplay = "";
-  bitrateString.trim();      // Usuń białe znaki
-  sampleRateString.trim();
-  bitsPerSampleString.trim();
-
-  if (bitrateString.length() > 0)  audioInfoDisplay += bitrateString + " b/s   ";
-  if (sampleRateString.length() > 0)  audioInfoDisplay += sampleRateString + " Hz    ";
-  if (bitsPerSampleString.length() > 0)  audioInfoDisplay += bitsPerSampleString + " bit";
-
-  canvas.setFont(&FreeMonoBold12pt7b);  // Czcionka dla parametrów audio
-  canvas.setTextColor(COLOR_YELLOW);    // Kolor tekstu
-  canvas.setCursor(5, 250);             // Pozycja tekstu powyżej głośności
-  canvas.print(audioInfoDisplay);       // Wyświetlenie parametrów audio
-
-  // --- Wyświetlenie głośności ---
-  volumeDisplay = "VOL " + String(volumeValue);
-  canvas.setTextColor(COLOR_WHITE);     // Kolor dla głośności
-  canvas.setCursor(5, 280);             // Pozycja tekstu
-  canvas.print(volumeDisplay);          // Wyświetlenie głośności
-
-  // --- Typ odtwarzanego pliku (MP3, FLAC, AAC, etc.) ---
-  canvas.setTextColor(COLOR_TURQUOISE); // Kolor tekstu
-  canvas.setCursor(150, 280);           // Pozycja w dolnej części ekranu
-  canvas.print(fileType);               // Wyświetlenie typu pliku
-
-  // --- Wysyłanie całego canvasu na ekran TFT ---
-  tft_pushCanvas(canvas);
 }
 
 
@@ -2468,7 +2469,7 @@ void my_audio_info(Audio::msg_t m)
       if (unknowContent != -1)
       {
         // Wyczyść obszar w canvas
-        canvas.fillRect(0, 30, 480, 200, COLOR_BLACK);
+        canvas.fillRect(0, 35, 480, 220, COLOR_BLACK);
 
         // Wyświetl komunikat informacyjny w canvas
         canvas.setFont(&FreeSans12pt7b);
@@ -2485,7 +2486,7 @@ void my_audio_info(Audio::msg_t m)
       if (connectTo != -1)
       {
         // Wyczyść obszar w canvas
-        canvas.fillRect(0, 30, 480, 200, COLOR_BLACK);
+        canvas.fillRect(0, 35, 480, 220, COLOR_BLACK);
 
         // Wyświetl komunikat informacyjny w canvas
         canvas.setFont(&FreeSans12pt7b);
@@ -2754,12 +2755,11 @@ void loop()
     {
       bank_nr = 1;
     }
-    String bankNumber = "Bank " + String(bank_nr);
-    canvas.fillRect(0, 285, 100, 35, COLOR_BLACK);
+    canvas.fillRect(70, 285, 30, 35, COLOR_BLACK);
     canvas.setFont(&FreeMonoBold12pt7b);
-    canvas.setTextColor(COLOR_RED);
-    canvas.setCursor(0, 310);
-    canvas.print(bankNumber);
+    canvas.setTextColor(COLOR_YELLOW);
+    canvas.setCursor(70, 310);
+    canvas.print(bank_nr);
     tft_pushCanvas(canvas);
   }
 
@@ -2776,12 +2776,11 @@ void loop()
     {
       bank_nr = 18;
     }
-    String bankNumber = "Bank " + String(bank_nr);
-    canvas.fillRect(0, 285, 100, 35, COLOR_BLACK);
+    canvas.fillRect(70, 285, 30, 35, COLOR_BLACK);
     canvas.setFont(&FreeMonoBold12pt7b);
-    canvas.setTextColor(COLOR_RED);
-    canvas.setCursor(0, 310);
-    canvas.print(bankNumber);
+    canvas.setTextColor(COLOR_YELLOW);
+    canvas.setCursor(70, 310);
+    canvas.print(bank_nr);
     tft_pushCanvas(canvas);
 
   }
@@ -2819,36 +2818,22 @@ void loop()
   }
 
 
-  // Powrót do wyświetlania po bezczynności podczas wybierania numeru banku nr numeru stacji bez zatwierdzenia OK
+  // Powrót do wyświetlania radia po bezczynności
   if (displayActive && (millis() - displayStartTime > DISPLAY_TIMEOUT)) 
   {
-    displayStartTime = millis(); // zresetuj, żeby kolejne timeouty też działały
+    station_nr = previous_station_nr; 
+    bank_nr = previous_bank_nr;
+    displayActive = false;
+    displayStartTime = millis();
 
-    if (stationsList || inputActive) 
-    {
-      stationsList = false;
-      inputBuffer = "";
-      inputActive = false;
+    stationsList = false;
+    inputBuffer = "";
+    inputActive = false;
+    bankSwitch = false;
 
-      Serial.println("Timeout: powrót z listy/wpisywania numeru.");
-      displayRadio();
-    } 
-    else 
-    {
-      station_nr = previous_station_nr; 
-      bank_nr = previous_bank_nr;
-      bankSwitch = false;
-
-      String bankNumber = "Bank " + String(bank_nr);
-      canvas.fillRect(0, 285, 100, 35, COLOR_BLACK);
-      canvas.setFont(&FreeMonoBold12pt7b);
-      canvas.setTextColor(COLOR_ORANGE);
-      canvas.setCursor(0, 310);
-      canvas.print(bankNumber);
-      tft_pushCanvas(canvas);
-
-      Serial.println("Timeout: powrót do banku.");
-    }
+    Serial.println("Timeout: powrót do głównego ekranu radia");
+    displayRadio();
   }
+
 
 }
