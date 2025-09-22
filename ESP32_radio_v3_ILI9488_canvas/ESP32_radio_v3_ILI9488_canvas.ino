@@ -281,9 +281,9 @@ unsigned long runTime1 = 0;                 // Czas T1 służący do obliczenia 
 unsigned long runTime2 = 0;                 // Czas T2 służący do obliczenia czasu trwania impulsu sygnału IR
 unsigned long ir_code = 0;                  // Zmienna do przechowywania kodu IR
 
-const int LEAD_HIGH = 9000;         // 9 ms sygnał wysoki (początkowy)
-const int LEAD_LOW = 4600;          // 4,5 ms sygnał niski (początkowy)
-const int TOLERANCE = 160;          // Tolerancja (w mikrosekundach)
+const int LEAD_HIGH = 9050;         // 9 ms sygnał wysoki (początkowy)
+const int LEAD_LOW = 4500;          // 4,5 ms sygnał niski (początkowy)
+const int TOLERANCE = 150;          // Tolerancja (w mikrosekundach)
 const int HIGH_THRESHOLD = 1690;    // Sygnał "1"
 const int LOW_THRESHOLD = 600;      // Sygnał "0"
 
