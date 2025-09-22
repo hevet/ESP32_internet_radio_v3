@@ -19,8 +19,8 @@
 #include <Adafruit_GFX.h>         // Uniwersalna biblioteka graficzna Adafruit GFX (podstawy rysowania, obsługa czcionek)
 
 // Definicje pinów dla SPI wyświetlacza TFT typu ILI9488
-#define TFT_CS    5    // Pin CS (Chip Select) – wybór układu TFT
-#define TFT_DC    4    // Pin DC (Data/Command) – rozróżnia dane od komend
+#define TFT_CS   10    // Pin CS (Chip Select) – wybór układu TFT
+#define TFT_DC   14    // Pin DC (Data/Command) – rozróżnia dane od komend
 #define TFT_RST  -1    // Pin RESET – tutaj -1 oznacza brak użycia sprzętowego resetu
 #define TFT_MOSI 11    // Pin MOSI (Master Out Slave In) – dane z ESP32 do TFT
 #define TFT_MISO 13    // Pin MISO (Master In Slave Out) – odczyt danych z TFT (rzadko używany)
@@ -32,15 +32,15 @@
 GFXcanvas16 canvas(TFT_WIDTH, TFT_HEIGHT);  // Bufor do rysowania całego ekranu w pamięci RAM przed wysłaniem na TFT (płynniejsze odświeżanie)
 
 // Definicje pinów dla SPI czytnika kart SD
-#define SD_SCK     45             // Pin SCK dla karty SD
-#define SD_MISO    21             // Pin MISO dla karty SD
-#define SD_MOSI    48             // Pin MOSI dla karty SD
-#define SD_CS      47             // Pin CS dla karty SD
+#define SD_SCK     15             // Pin SCK dla karty SD
+#define SD_MISO    18             // Pin MISO dla karty SD
+#define SD_MOSI     2             // Pin MOSI dla karty SD
+#define SD_CS      39             // Pin CS dla karty SD
 
 // Definicje pinów dla I2S modułu DAC z PCM5102A
-#define I2S_BCLK      16          // Podłączenie po pinu BCK na module DAC z PCM5102A
-#define I2S_DOUT      17          // Podłączenie do pinu DIN na module DAC z PCM5102A
-#define I2S_LRC       18          // Podłączenie do pinu LCK na module DAC z PCM5102A
+#define I2S_BCLK      9          // Podłączenie po pinu BCK na module DAC z PCM5102A
+#define I2S_DOUT      3          // Podłączenie do pinu DIN na module DAC z PCM5102A
+#define I2S_LRC       1          // Podłączenie do pinu LCK na module DAC z PCM5102A
 
 // Makra upraszczające sterowanie liniami TFT
 #define CS_ACTIVE   digitalWrite(TFT_CS, LOW)   // Aktywacja wyświetlacza (CS = LOW)
@@ -259,7 +259,7 @@ MenuOption currentOption = INTERNET_RADIO;  // Aktualnie wybrana opcja menu (dom
 
 
 /*===============    Definicja portu i deklaracje zmiennych do obsługi odbiornika IR    =============*/
-int recv_pin = 15;                          // Pin odbiornika IR
+int recv_pin = 4;                          // Pin odbiornika IR
 int bit_count = 0;                          // Licznik bitów w odebranym kodzie
 
 volatile bool pulse_ready = false;          // Flaga sygnału gotowości
