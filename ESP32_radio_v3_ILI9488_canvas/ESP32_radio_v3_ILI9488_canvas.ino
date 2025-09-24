@@ -38,8 +38,8 @@ GFXcanvas16 canvas(TFT_WIDTH, TFT_HEIGHT);  // Bufor do rysowania całego ekranu
 #define SD_CS      39             // Pin CS dla karty SD
 
 // Definicje pinów dla I2S modułu DAC z PCM5102A
-#define I2S_BCLK      9          // Podłączenie po pinu BCK na module DAC z PCM5102A
-#define I2S_DOUT      3          // Podłączenie do pinu DIN na module DAC z PCM5102A
+#define I2S_DOUT      9          // Podłączenie do pinu DIN na module DAC z PCM5102A
+#define I2S_BCLK      3          // Podłączenie po pinu BCK na module DAC z PCM5102A
 #define I2S_LRC       1          // Podłączenie do pinu LCK na module DAC z PCM5102A
 
 // Makra upraszczające sterowanie liniami TFT
